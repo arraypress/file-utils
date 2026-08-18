@@ -1,0 +1,41 @@
+{
+  "name": "@arraypress/file-utils",
+  "version": "1.0.0",
+  "description": "File utilities — human-readable sizes, filename sanitisation for storage and Content-Disposition, and MIME type classification. Zero dependencies.",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "file",
+    "filesize",
+    "filename",
+    "sanitize",
+    "content-disposition",
+    "mime",
+    "mime-types",
+    "upload",
+    "path-traversal"
+  ],
+  "author": "David Sherlock",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arraypress/file-utils"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
