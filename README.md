@@ -144,9 +144,9 @@ derives it from a content type. They arrived here from two packages that each ca
 
 ## Absorbed packages
 
-This package replaces three that are now deprecated:
+This package replaces three that have since been removed from npm:
 
-| Deprecated | Now |
+| Removed | Now |
 |---|---|
 | `@arraypress/file-size` | `formatSize` |
 | `@arraypress/safe-filename` | `sanitize`, `contentDisposition`, `extensionFromName`, `replaceExtension`, `humanize` |
