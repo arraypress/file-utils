@@ -37,7 +37,7 @@ const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
  *
  * @example
  * sanitize('report.pdf')                    // 'report.pdf'
- * sanitize('../../../etc/passwd')            // '______etc_passwd'
+ * sanitize('../../uploads/report.pdf')      // 'report.pdf'
  * sanitize('my "file".txt')                 // 'my _file_.txt'
  * sanitize('file\x00name.zip')              // 'file_name.zip'
  * sanitize('')                              // 'file'

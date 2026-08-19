@@ -25,14 +25,13 @@
     "content-disposition",
     "mime",
     "mime-types",
-    "upload",
-    "path-traversal"
+    "upload"
   ],
   "author": "David Sherlock",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arraypress/file-utils"
+    "url": "git+https://github.com/arraypress/file-utils.git"
   },
   "publishConfig": {
     "access": "public",

@@ -61,7 +61,7 @@ Options: `fallback` (default `'file'`), `maxLength` (default `255`), `replacemen
 
 ```js
 sanitize('report.pdf');            // 'report.pdf'
-sanitize('../../../etc/passwd');   // 'passwd'
+sanitize('../../uploads/report.pdf');  // 'report.pdf'
 sanitize('my "file".txt');         // 'my _file_.txt'
 sanitize('file\x00name.zip');      // 'file_name.zip'
 sanitize('CON.txt');               // '_CON.txt'
