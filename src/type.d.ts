@@ -24,5 +24,14 @@ export function getLabel(mime: string): string;
 /** Get the typical file extension for a MIME type (without dot). */
 export function extensionFromMime(mime: string): string;
 
+/** The general category of a file from its name (presentation only). */
+export function getCategoryFromName(filename: string): Category;
+
+/** The MIME type every current browser shows or plays a file inline as, by name, or `''`. */
+export function inlineType(filename: string): string;
+
+/** Whether every current browser plays a file as audio, by name. */
+export function isPlayableAudio(filename: string): boolean;
+
 /** Check if a MIME type is previewable in a browser. */
 export function isPreviewable(mime: string): boolean;

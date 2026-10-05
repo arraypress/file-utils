@@ -19,5 +19,11 @@ export function extensionFromName(filename: string): string;
 /** Replace the extension of a filename. */
 export function replaceExtension(filename: string, ext: string): string;
 
+/**
+ * The name a file ends up with when renamed, keeping its extension whatever
+ * was typed, or `''` when what was typed has no letter or digit.
+ */
+export function renameKeepingExtension(current: string, typed: string, max?: number): string;
+
 /** Convert a filename to a human-readable title (strip ext, replace separators, title case). */
 export function humanize(filename: string): string;

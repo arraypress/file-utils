@@ -51,6 +51,17 @@ formatSize(1073741824);  // '1.0 GB'
 formatSize(1536, 2);     // '1.50 KB'
 ```
 
+Pass an options object instead of a number for more: `decimals`, and `wholeUnits` — a value within
+0.05 of a whole unit prints without a decimal, thousands are grouped, the sign is kept and the
+scale reaches PB. That is exactly what the PHP `SugarCommerce\Format\Bytes::format()` prints, for
+pages where the server and the browser both write sizes. Add `si: true` for 1000-based units.
+
+```js
+formatSize(104857600, { wholeUnits: true });            // '100 MB'
+formatSize(1048063, { wholeUnits: true });              // '1,023.5 KB'
+formatSize(104857600, { wholeUnits: true, si: true });  // '104.9 MB'
+```
+
 ### Name
 
 **`sanitize(filename, options?)`** — makes a filename safe for storage and HTTP headers. Strips
@@ -97,6 +108,19 @@ replaceExtension('photo.png', 'webp');  // 'photo.webp'
 replaceExtension('README', 'md');       // 'README.md'
 ```
 
+**`renameKeepingExtension(current, typed, max = 255)`** — the name a file ends up with when somebody
+renames it, keeping its extension whatever they typed (a rename from `.wav` to `.exe` would be a
+different file to an upload check, a player and the buyer's computer). Invisible and
+direction-changing characters go, whitespace collapses, slashes become `-`, outer dots and spaces
+go; `''` when no letter or digit is left. Lengths are counted in characters, not UTF-16 units.
+
+```js
+renameKeepingExtension('Master.wav', 'Final mix');      // 'Final mix.wav'
+renameKeepingExtension('Master.wav', 'Final mix.WAV');  // 'Final mix.wav'
+renameKeepingExtension('Master.wav', 'evil.exe');       // 'evil.exe.wav'
+renameKeepingExtension('Master.wav', '...');            // ''
+```
+
 **`humanize(filename)`** — a display title from a filename. Strips the extension, turns separators
 into spaces, title-cases. Handy for alt text and headings.
 
@@ -135,6 +159,27 @@ extensionFromMime('audio/mpeg');  // 'mp3'
 **`isPreviewable(mime)`** — whether a browser can render it natively: images, audio, video, PDF
 and `text/*`.
 
+### Type, by name
+
+For when there is a filename and no content type — a file list, an upload queue. Presentation
+only: never decide whether a file is safe from its extension.
+
+**`getCategoryFromName(filename)`** — the same six categories as `getCategory`, from the
+extension. Spreadsheets and slides count as documents; code and fonts as other. Kept in step with
+the PHP `SugarCommerce\Format\FileType`, so a file gets the same icon on both sides.
+
+**`inlineType(filename)`** — the content type to show or play a file inline as, when every current
+browser renders it: PNG/JPEG/GIF/WebP/AVIF, MP4/WebM/MOV, MP3/WAV/M4A/AAC/Ogg/Opus/FLAC and PDF.
+`''` otherwise — not SVG (it can carry script), not TIFF/HEIC/PSD, not AIFF (Safari only).
+
+**`isPlayableAudio(filename)`** — whether `inlineType` is audio.
+
+```js
+getCategoryFromName('Budget.xlsx');  // 'document'
+inlineType('take.flac');             // 'audio/flac'
+isPlayableAudio('session.aiff');     // false
+```
+
 ### Why `extensionFromName` and `extensionFromMime`
 
 Both answer "what's the extension?", but from opposite directions — one reads a filename, the other
@@ -153,6 +198,15 @@ This package replaces three that have since been removed from npm:
 | `@arraypress/mime-types` | `isImage`…`isPreviewable`, `getCategory`, `getLabel`, `extensionFromMime` |
 
 Behaviour is unchanged apart from the two `getExtension` renames above.
+
+## Testing
+
+```bash
+npm test
+```
+
+224 tests. The `wholeUnits` size cases are values the PHP `Bytes::format()` printed, so the two
+cannot drift apart unnoticed.
 
 ## License
 

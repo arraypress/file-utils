@@ -35,6 +35,7 @@ export {
 	contentDisposition,
 	extensionFromName,
 	replaceExtension,
+	renameKeepingExtension,
 	humanize,
 } from './name.js';
 
@@ -46,7 +47,10 @@ export {
 	isDocument,
 	isArchive,
 	getCategory,
+	getCategoryFromName,
 	getLabel,
 	extensionFromMime,
+	inlineType,
+	isPlayableAudio,
 	isPreviewable,
 } from './type.js';
