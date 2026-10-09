@@ -306,6 +306,85 @@ export function isPlayableAudio(filename) {
 }
 
 /**
+ * Extensions a file browser tells apart beyond the categories: fonts, and
+ * software (plugins, installers, presets, project files). The categories
+ * fold both into `other`, in step with the PHP `FileType`; a kind keeps
+ * them, for an icon or a filter.
+ */
+const KIND_EXTENSIONS = {
+  font: ['ttf', 'otf', 'woff', 'woff2', 'eot'],
+  software: [
+    'exe', 'msi', 'pkg', 'app', 'apk', 'ipa', 'deb', 'rpm', 'appimage',
+    'vst', 'vst3', 'component', 'aax', 'clap', 'dll',
+    'fxp', 'fxb', 'nks', 'adg', 'adv', 'als', 'xmp', 'cube', 'lrtemplate',
+    'json', 'js', 'ts', 'py',
+  ],
+};
+
+/** The noun a kind's label ends with: "WAV audio", "OTF font". */
+const KIND_NOUNS = {
+  image: 'image', audio: 'audio', video: 'video', document: 'document', archive: 'archive',
+  font: 'font', software: 'file', other: 'file',
+};
+
+/**
+ * What a file is, from its name: its category, or `font` or `software`
+ * where the category would say `other`.
+ *
+ * Presentation only, like {@link getCategoryFromName}.
+ *
+ * @param {string} filename - File name, path or URL.
+ * @returns {'image'|'audio'|'video'|'document'|'archive'|'font'|'software'|'other'}
+ *
+ * @example
+ * getKindFromName('Grotto Sans.otf')  // 'font'
+ * getKindFromName('Prism.vst3')       // 'software'
+ * getKindFromName('Loop.wav')         // 'audio'
+ */
+export function getKindFromName(filename) {
+  const category = getCategoryFromName(filename);
+  if (category !== 'other') return category;
+  const ext = extensionForType(filename);
+  if (KIND_EXTENSIONS.font.includes(ext)) return 'font';
+  if (KIND_EXTENSIONS.software.includes(ext)) return 'software';
+  return 'other';
+}
+
+/**
+ * A file's kind as people read it: its extension and what it is.
+ *
+ * @param {string} filename - File name, path or URL.
+ * @returns {string} e.g. "WAV audio", "ZIP archive", "OTF font", "VST3 file", or "File" without an extension.
+ *
+ * @example
+ * getLabelFromName('Midnight Drive.wav')  // 'WAV audio'
+ * getLabelFromName('README')              // 'File'
+ */
+export function getLabelFromName(filename) {
+  const ext = extensionForType(filename);
+  if (!ext) return 'File';
+  return `${ext.toUpperCase()} ${KIND_NOUNS[getKindFromName(filename)]}`;
+}
+
+/**
+ * How a page can preview a file inline, going by its name: as an image,
+ * with an audio player, or with a video player. Built on
+ * {@link inlineType}, so it's what every current browser renders.
+ *
+ * @param {string} filename - File name, path or URL.
+ * @returns {'image'|'audio'|'video'|null} The element to use, or null (a PDF is inline but not one of these).
+ *
+ * @example
+ * getPreviewKind('cover.webp')    // 'image'
+ * getPreviewKind('take.flac')     // 'audio'
+ * getPreviewKind('session.aiff')  // null
+ */
+export function getPreviewKind(filename) {
+  const media = inlineType(filename).split('/')[0];
+  return media === 'image' || media === 'audio' || media === 'video' ? media : null;
+}
+
+/**
  * Check if a MIME type is previewable in a browser.
  *
  * Returns true for images, audio, video, PDFs, and text types

@@ -23,10 +23,13 @@ export {
 	isArchive,
 	getCategory,
 	getCategoryFromName,
+	getKindFromName,
 	getLabel,
+	getLabelFromName,
+	getPreviewKind,
 	extensionFromMime,
 	inlineType,
 	isPlayableAudio,
 	isPreviewable,
 } from './type.js';
-export type { Category } from './type.js';
+export type { Category, FileKind } from './type.js';

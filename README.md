@@ -180,6 +180,26 @@ inlineType('take.flac');             // 'audio/flac'
 isPlayableAudio('session.aiff');     // false
 ```
 
+### Kind, by name
+
+For a file browser: the category, plus `font` and `software` (plugins,
+installers, presets, project files) that the categories fold into `other`.
+
+```js
+import { getKindFromName, getLabelFromName, getPreviewKind } from '@arraypress/file-utils';
+
+getKindFromName('Grotto Sans.otf');   // 'font'
+getKindFromName('Prism.vst3');        // 'software'
+getLabelFromName('Night Shift.wav');  // 'WAV audio'
+getPreviewKind('cover.webp');         // 'image' (null when browsers don't all render it)
+```
+
+| | |
+|---|---|
+| `getKindFromName(filename)` | `FileKind`: a `Category`, `font`, or `software`. |
+| `getLabelFromName(filename)` | "WAV audio", "OTF font", "VST3 file", or "File". |
+| `getPreviewKind(filename)` | `image`, `audio`, `video` or `null`. |
+
 ### Why `extensionFromName` and `extensionFromMime`
 
 Both answer "what's the extension?", but from opposite directions — one reads a filename, the other
