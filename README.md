@@ -62,6 +62,15 @@ formatSize(1048063, { wholeUnits: true });              // '1,023.5 KB'
 formatSize(104857600, { wholeUnits: true, si: true });  // '104.9 MB'
 ```
 
+Add `locale` (a BCP 47 tag) to write the number and unit in another language with `Intl.NumberFormat`,
+at the same scale and decimals. An unknown locale gives the output without it.
+
+```js
+formatSize(1536, { locale: 'de' });                         // '1,5 kB'
+formatSize(104857600, { wholeUnits: true, locale: 'fr' });  // '100 Mo'
+formatSize(1536, { decimals: 2, locale: 'pt-BR' });         // '1,50 kB'
+```
+
 ### Name
 
 **`sanitize(filename, options?)`** — makes a filename safe for storage and HTTP headers. Strips

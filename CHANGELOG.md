@@ -5,7 +5,13 @@ All notable changes to `@arraypress/file-utils` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] — Unreleased
+## [1.2.0] — 2026-10-11
+
+### Added
+
+- `formatSize(bytes, { locale })` — a BCP 47 tag writes the number and unit with `Intl.NumberFormat` in that language: `formatSize(1536, { locale: 'de' })` → `'1,5 kB'`, `formatSize(104857600, { wholeUnits: true, locale: 'fr' })` → `'100 Mo'`. The scale (1024, or 1000 with `si`) and the decimals are those of the same options without it. Null and invalid input return what they did; an unknown locale gives the output without it.
+
+## [1.1.0] — 2026-10-09
 
 ### Added
 

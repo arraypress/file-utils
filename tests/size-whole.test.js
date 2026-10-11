@@ -31,3 +31,38 @@ describe('formatSize — wholeUnits (the PHP Bytes::format rule)', () => {
 
   it('nullish → empty', () => assert.equal(formatSize(null, { wholeUnits: true }), ''));
 });
+
+describe('formatSize — locale', () => {
+  // As Intl spaces them: German with a plain space, French with U+202F.
+  it('German', () => assert.equal(formatSize(1536, { locale: 'de' }), '1,5 kB'));
+  it('keeps the decimals', () => {
+    assert.equal(formatSize(1024, { locale: 'de' }), '1,0 kB');
+    assert.equal(formatSize(1536, { decimals: 2, locale: 'de' }), '1,50 kB');
+    assert.equal(formatSize(1536, { decimals: 0, locale: 'de' }), '2 kB');
+  });
+  it('bytes have no decimals', () => assert.equal(formatSize(512, { locale: 'fr' }), '512\u202fo'));
+  it('zero', () => assert.equal(formatSize(0, { locale: 'de' }), '0 Byte'));
+  it('scales to TB', () => assert.equal(formatSize(1099511627776, { locale: 'de' }), '1,0 TB'));
+
+  it('wholeUnits: whole numbers show no decimals', () => {
+    assert.equal(formatSize(104857600, { wholeUnits: true, locale: 'fr' }), '100\u202fMo');
+    assert.equal(formatSize(1536, { wholeUnits: true, locale: 'fr' }), '1,5\u202fko');
+  });
+  it('wholeUnits: grouped, signed, to PB', () => {
+    assert.equal(formatSize(1048063, { wholeUnits: true, locale: 'de' }), '1.023,5 kB');
+    assert.equal(formatSize(-1536, { wholeUnits: true, locale: 'de' }), '-1,5 kB');
+    assert.equal(formatSize(1125899906842624, { wholeUnits: true, locale: 'de' }), '1 PB');
+  });
+  it('wholeUnits with si', () => assert.equal(formatSize(104857600, { wholeUnits: true, si: true, locale: 'de' }), '104,9 MB'));
+
+  it('null, undefined and negative are as without a locale', () => {
+    assert.equal(formatSize(null, { locale: 'de' }), '');
+    assert.equal(formatSize(undefined, { locale: 'de' }), '');
+    assert.equal(formatSize(-1, { locale: 'de' }), '');
+    assert.equal(formatSize(null, { wholeUnits: true, locale: 'de' }), '');
+  });
+  it('unknown locale → as without it', () => {
+    assert.equal(formatSize(1536, { locale: 'xx' }), '1.5 KB');
+    assert.equal(formatSize(1536, { locale: 'not a locale', wholeUnits: true }), '1.5 KB');
+  });
+});
