@@ -81,6 +81,8 @@ export function isMeaningless(base) {
   const name = base.trim();
   if (isDeviceName(name)) return false;
   if (GENERIC_NAME.test(name)) return true;
+  // A UUID, whatever letters its hex happens to spell (“64547710-dd08-11f1-97df-bd0937690c4d”).
+  if (/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(name)) return true;
   // Only numbers, dates and separators.
   if (!/\p{L}/u.test(name)) return true;
   const words = name.split(/[\s_.-]+/).filter(Boolean);

@@ -58,6 +58,8 @@ export function decodeName(text: string): string;
 export function stripTracking(name: string): string;
 /** Copy marks (“ (1)”, “ - Copy”, “ copy 2”) dropped from the end of a base name. */
 export function stripCopyMarks(base: string): string;
+/** Size marks image servers add (“1280px-”, “-1024x683”, “_600x”) dropped, when letters are left. */
+export function stripSizeMarks(base: string): string;
 /** Runs of spaces made one; spaces, dots, dashes and underscores off the ends. */
 export function tidySpacing(text: string): string;
 /** Every tidying rule on a whole file name; the extension kept as written. */

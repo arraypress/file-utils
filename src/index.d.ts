@@ -22,6 +22,7 @@ export {
 	decodeName,
 	stripTracking,
 	stripCopyMarks,
+	stripSizeMarks,
 	tidySpacing,
 	cleanName,
 	isDeviceName,

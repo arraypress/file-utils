@@ -173,7 +173,7 @@ off). Returns `{ name, meaningless, ext }`. Every name ends with **`finishName(b
 readable stand-ins for `:?*"<>|/`, `sanitize`, at most `MAX_NAME_LENGTH` (120) characters.
 
 The pieces, each pure: `splitName` / `joinName` / `baseName` (`tar.gz` kept together, “Version
-2.0” has no extension), `decodeName`, `stripTracking`, `stripCopyMarks`, `tidySpacing`,
+2.0” has no extension), `decodeName`, `stripTracking`, `stripCopyMarks`, `stripSizeMarks` (“1280px-”, “-1024x683”, “_600x”), `tidySpacing`,
 `cleanName`, `isMeaningless` (generic words, numbers, hashes, base64, a generic word beside an id),
 `isDeviceName` (“IMG_2384”, “PXL_…”, “Screenshot …”: never meaningless), `siteName` (“Acme” from
 billing.acme.co.uk), `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`,

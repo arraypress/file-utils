@@ -13,7 +13,7 @@
  */
 
 export { baseName, joinName, splitName } from './split.js';
-export { cleanName, decodeName, stripCopyMarks, stripTracking, tidySpacing } from './clean.js';
+export { cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, tidySpacing } from './clean.js';
 export { isDeviceName, isMeaningless } from './meaning.js';
 export { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
 export { extensionFor } from './extension.js';

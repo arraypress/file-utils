@@ -8,7 +8,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  cleanName, decodeName, stripCopyMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
+  cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
   isDeviceName, isMeaningless, MAX_NAME_LENGTH, finishName, hostOf, ruleName, withSite, baseName, joinName, splitName,
 } from '../src/index.js';
 
@@ -344,5 +344,31 @@ describe('what a page says a file is (1.3.0)', () => {
     assert.equal(fromLabel(undefined), null);
     assert.equal(ruleName({ filename: '8f3a9c2e41b7.jpg', label: 'View from the summit', linkText: 'Download' }, { site: false }).name, 'View from the summit.jpg');
     assert.equal(ruleName({ filename: '8f3a9c2e41b7.jpg', label: 'img', linkText: 'Get the summit photo' }, { site: false }).name, 'summit photo.jpg');
+  });
+});
+
+describe('size marks and inner extensions (1.3.0)', () => {
+  it('image servers’ size marks go when letters are left; a name of only a size stays', () => {
+    assert.equal(stripSizeMarks('1280px-Derwent_Water'), 'Derwent_Water');
+    assert.equal(stripSizeMarks('lake-1024x683'), 'lake');
+    assert.equal(stripSizeMarks('hero_600x'), 'hero');
+    assert.equal(stripSizeMarks('0ZxKlEKB_400x400'), '0ZxKlEKB');
+    assert.equal(stripSizeMarks('1920x1080'), '1920x1080');
+    assert.equal(stripSizeMarks('Room 4x4'), 'Room 4x4');
+    assert.equal(stripSizeMarks('300px-'), '300px-');
+    assert.equal(stripSizeMarks('2026_1024x683'), '2026_1024x683');
+  });
+
+  it('a UUID says nothing, whatever letters its hex spells', () => {
+    assert.equal(isMeaningless('64547710-dd08-11f1-97df-bd0937690c4d'), true);
+    assert.equal(isMeaningless('64547710dd0811f197dfbd0937690c4d'), true);
+  });
+
+  it('cleanName: a smaller copy’s name is the original’s; an image extension left inside goes', () => {
+    assert.equal(cleanName('960px-Mona_Lisa,_by_Leonardo.jpg'), 'Mona_Lisa,_by_Leonardo.jpg');
+    assert.equal(cleanName('Spring-Menu-300x200.png'), 'Spring-Menu.png');
+    assert.equal(cleanName('64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp'), '64547710-dd08-11f1-97df-bd0937690c4d.webp');
+    assert.equal(cleanName('report.pdf.zip'), 'report.pdf.zip');
+    assert.equal(ruleName({ filename: '64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp', label: 'Floods in the north' }, { site: false }).name, 'Floods in the north.webp');
   });
 });

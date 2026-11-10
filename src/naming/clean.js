@@ -81,6 +81,33 @@ export function stripCopyMarks(base) {
   return stripped;
 }
 
+/** Size marks image servers add: MediaWiki's “1280px-” in front, WordPress' “-1024x683”, Shopify's “_600x”, X's “_400x400”. */
+const SIZE_MARKS = [/^\d{2,4}px-(?=.*\p{L})/u, /[-_]\d{2,4}x\d{0,4}$/];
+
+/** Image extensions a server leaves inside a name when it sends another format (“photo.jpg.webp”). */
+const INNER_IMAGE_EXTENSION = /\.(?:jpe?g|png|gif|webp|avif)$/i;
+
+/**
+ * Drop the size marks image servers add to a name (a smaller copy's), when
+ * a name with letters is left.
+ *
+ * @param {string} base - A name without its extension.
+ * @returns {string} It without them.
+ * @example
+ * stripSizeMarks('1280px-Derwent_Water');  // 'Derwent_Water'
+ * stripSizeMarks('lake-1024x683');         // 'lake'
+ * stripSizeMarks('hero_600x');             // 'hero'
+ * stripSizeMarks('1920x1080');             // '1920x1080' (nothing would be left)
+ */
+export function stripSizeMarks(base) {
+  let stripped = base;
+  for (const mark of SIZE_MARKS) {
+    const next = stripped.replace(mark, '');
+    if (/\p{L}/u.test(next)) stripped = next;
+  }
+  return stripped;
+}
+
 /**
  * Tidy spacing: runs of spaces become one, and spaces, dots, dashes and
  * underscores go from the ends.
@@ -96,7 +123,9 @@ export function tidySpacing(text) {
 
 /**
  * Every rule here, in order, on a whole file name: decoded, tracking out,
- * copy marks dropped, spacing tidied. The extension is kept as written.
+ * copy marks and image servers' size marks dropped, an image extension left
+ * inside the name dropped (“photo.jpg.webp”), spacing tidied. The extension
+ * is kept as written.
  *
  * @param {string} name - The name Chrome would use.
  * @returns {string} The tidied name (the original, if tidying would leave nothing).
@@ -104,9 +133,12 @@ export function tidySpacing(text) {
  * cleanName('download (3).pdf');                      // 'download.pdf'
  * cleanName('Annual%20Report%202025%20(1).pdf');      // 'Annual Report 2025.pdf'
  * cleanName('IMG_2384.JPG');                          // 'IMG_2384.JPG'
+ * cleanName('960px-Mona_Lisa.jpg');                   // 'Mona_Lisa.jpg'
+ * cleanName('64547710-dd08.jpg.webp');                // '64547710-dd08.webp'
  */
 export function cleanName(name) {
   const { base, ext } = splitName(stripTracking(decodeName(name)));
-  const cleaned = tidySpacing(stripCopyMarks(base));
+  const inner = INNER_IMAGE_EXTENSION.test(ext ? `.${ext}` : '') ? base.replace(INNER_IMAGE_EXTENSION, '') : base;
+  const cleaned = tidySpacing(stripSizeMarks(stripCopyMarks(inner || base)));
   return cleaned ? joinName(cleaned, ext) : name;
 }
