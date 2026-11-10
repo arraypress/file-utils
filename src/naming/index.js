@@ -15,6 +15,6 @@
 export { baseName, joinName, splitName } from './split.js';
 export { cleanName, decodeName, stripCopyMarks, stripTracking, tidySpacing } from './clean.js';
 export { isDeviceName, isMeaningless } from './meaning.js';
-export { fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
+export { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
 export { extensionFor } from './extension.js';
 export { MAX_NAME_LENGTH, finishName, hostOf, ruleName, withSite } from './name.js';

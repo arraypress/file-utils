@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Naming a file from the web, moved here from Better Downloads so Better Saves can share it: `ruleName(facts, options?)`, `finishName`, `cleanName`, `isMeaningless`, `isDeviceName`, `splitName`, `joinName`, `baseName`, `decodeName`, `stripTracking`, `stripCopyMarks`, `tidySpacing`, `siteName`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`, `extensionFor`, `MAX_NAME_LENGTH`; types `DownloadFacts`, `RuleName`, `RuleNameOptions`, `NameParts`.
+- Naming a file from the web, moved here from Better Downloads so Better Saves can share it: `ruleName(facts, options?)`, `finishName`, `cleanName`, `isMeaningless`, `isDeviceName`, `splitName`, `joinName`, `baseName`, `decodeName`, `stripTracking`, `stripCopyMarks`, `tidySpacing`, `siteName`, `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`, `extensionFor`, `MAX_NAME_LENGTH`; types `DownloadFacts`, `RuleName`, `RuleNameOptions`, `NameParts`.
+- `label` among the facts: what a page says a file is (alt text, a caption, a heading), used as it is ahead of the link's text (`fromLabel`), so “View from the summit” keeps its first word.
 - `ruleName(facts, { site: false })` leaves the site's name off a name from the page (for files going into a folder named after the site).
 - `isMeaningless` reads a generic word beside an id as meaningless (an image CDN's `photo-1506744038136-46273834b3fb`, `image_8f3a9c2e41`); a generic word beside a date still says which (`Invoice 2026-11`). `isDeviceName` no longer takes an id beside “photo” for a camera's name.
 

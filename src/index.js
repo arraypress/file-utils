@@ -55,6 +55,7 @@ export {
 	isDeviceName,
 	isMeaningless,
 	siteName,
+	fromLabel,
 	fromLinkText,
 	fromTitle,
 	fromQuery,

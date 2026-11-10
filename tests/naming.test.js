@@ -8,7 +8,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  cleanName, decodeName, stripCopyMarks, stripTracking, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
+  cleanName, decodeName, stripCopyMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
   isDeviceName, isMeaningless, MAX_NAME_LENGTH, finishName, hostOf, ruleName, withSite, baseName, joinName, splitName,
 } from '../src/index.js';
 
@@ -325,7 +325,7 @@ describe('names from image hosts and pages (1.3.0)', () => {
   });
 
   it('a meaningless image is named from its alt text, the site in front unless asked not to', () => {
-    const facts = { filename: 'photo-1506744038136-46273834b3fb', mime: 'image/jpeg', referrer: 'https://unsplash.com/photos/x', linkText: 'A mountain lake at dawn' };
+    const facts = { filename: 'photo-1506744038136-46273834b3fb', mime: 'image/jpeg', referrer: 'https://unsplash.com/photos/x', label: 'A mountain lake at dawn' };
     assert.equal(ruleName(facts).name, 'Unsplash A mountain lake at dawn.jpg');
     assert.equal(ruleName(facts, { site: false }).name, 'A mountain lake at dawn.jpg');
     assert.equal(ruleName({ filename: 'a7f3e9c2b1d4.jpg', referrer: 'https://www.acme.com/team', pageTitle: 'Our team – Acme' }, { site: false }).name, 'Our team.jpg');
@@ -333,5 +333,16 @@ describe('names from image hosts and pages (1.3.0)', () => {
 
   it('a name from the query is the server’s own, with or without the site', () => {
     assert.equal(ruleName({ filename: 'file', mime: 'image/png', url: 'https://x.example.com/get?filename=Q3%20chart.png' }, { site: false }).name, 'Q3 chart.png');
+  });
+});
+
+describe('what a page says a file is (1.3.0)', () => {
+  it('a label is used as it is, ahead of the link’s text; a link’s verb comes off, a label’s doesn’t', () => {
+    assert.equal(fromLabel('View from the summit'), 'View from the summit');
+    assert.equal(fromLinkText('View from the summit'), 'from the summit');
+    assert.equal(fromLabel('image'), null);
+    assert.equal(fromLabel(undefined), null);
+    assert.equal(ruleName({ filename: '8f3a9c2e41b7.jpg', label: 'View from the summit', linkText: 'Download' }, { site: false }).name, 'View from the summit.jpg');
+    assert.equal(ruleName({ filename: '8f3a9c2e41b7.jpg', label: 'img', linkText: 'Get the summit photo' }, { site: false }).name, 'summit photo.jpg');
   });
 });

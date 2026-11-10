@@ -10,7 +10,7 @@
 
 import { sanitize } from '../name.js';
 import { cleanName, tidySpacing } from './clean.js';
-import { fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
+import { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
 import { extensionFor } from './extension.js';
 import { isMeaningless } from './meaning.js';
 import { baseName, joinName, splitName } from './split.js';
@@ -29,7 +29,10 @@ export const MAX_NAME_LENGTH = 120;
  * @property {string} [mime] The type the site sent.
  * @property {string} [referrer] The page it came from.
  * @property {string} [pageTitle] That page's title, when it could be read.
- * @property {string} [linkText] The text of the link that started it, or what the page says about the file (an image's alt text, a caption), when it could be read.
+ * @property {string} [label] What the page says the file is (an image's alt text, a caption, the heading over an
+ *   audio player), used as it is.
+ * @property {string} [linkText] The text of the link that started it, when it could be read (“Download the
+ *   report (PDF)”: the verb and the note come off).
  */
 
 /**
@@ -101,7 +104,7 @@ export function finishName(base, ext, mime) {
  * ruleName({ filename: 'download (3).pdf', mime: 'application/pdf', referrer: 'https://billing.acme.com/invoices',
  *   pageTitle: 'Invoice 2026-11 – Acme Billing' }).name; // 'Acme Invoice 2026-11.pdf'
  * ruleName({ filename: 'IMG_2384.jpg', mime: 'image/jpeg' }).name; // 'IMG_2384.jpg'
- * ruleName({ filename: 'a7f3e9c2b1d4.jpg', referrer: 'https://www.acme.com/team', linkText: 'Ana at the 2026 retreat' },
+ * ruleName({ filename: 'a7f3e9c2b1d4.jpg', referrer: 'https://www.acme.com/team', label: 'Ana at the 2026 retreat' },
  *   { site: false }).name; // 'Ana at the 2026 retreat.jpg'
  */
 export function ruleName(facts, options = {}) {
@@ -113,8 +116,9 @@ export function ruleName(facts, options = {}) {
 
 /**
  * A name from what's known besides the file's own name, in order: a file
- * name in the address's query (the server's), the link's text or the
- * page's title, the address's path (each with the site's name in front).
+ * name in the address's query (the server's), what the page says the file
+ * is, the link's text, the page's title, the address's path (each with the
+ * site's name in front).
  *
  * @param {DownloadFacts} facts - What's known.
  * @param {boolean} site - Whether the site's name goes in front.
@@ -122,7 +126,8 @@ export function ruleName(facts, options = {}) {
  */
 function contextName(facts, site) {
   const pageHost = hostOf(facts.referrer) || hostOf(facts.finalUrl) || hostOf(facts.url);
-  const fromPage = fromLinkText(facts.linkText) ?? fromTitle(facts.pageTitle, pageHost) ?? fromPath(facts.finalUrl) ?? fromPath(facts.url);
+  const fromPage = fromLabel(facts.label) ?? fromLinkText(facts.linkText) ?? fromTitle(facts.pageTitle, pageHost)
+    ?? fromPath(facts.finalUrl) ?? fromPath(facts.url);
   return fromQuery(facts.finalUrl) ?? fromQuery(facts.url) ?? (site ? withSite(fromPage, pageHost) : fromPage);
 }
 

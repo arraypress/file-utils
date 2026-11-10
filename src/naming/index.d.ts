@@ -20,7 +20,9 @@ export interface DownloadFacts {
   referrer?: string;
   /** That page's title. */
   pageTitle?: string;
-  /** The link's text, or what the page says about the file (alt text, a caption). */
+  /** What the page says the file is (alt text, a caption, a heading), used as it is. */
+  label?: string;
+  /** The link's text (its verb and note about the file come off). */
   linkText?: string;
 }
 
@@ -68,6 +70,8 @@ export function isMeaningless(base: string): boolean;
 
 /** A site's name as people write it, from its host ("billing.acme.co.uk" → "Acme"). */
 export function siteName(host: string): string;
+/** A name from what a page says a file is (alt text, a caption), as it is, or null. */
+export function fromLabel(text: string | undefined): string | null;
 /** A name from a link's text, its verb and note about the file taken off, or null. */
 export function fromLinkText(text: string | undefined): string | null;
 /** A name from a page's title, the site's own name taken off, or null. */

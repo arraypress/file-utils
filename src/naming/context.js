@@ -58,6 +58,21 @@ function meaningful(text) {
 }
 
 /**
+ * A name from what a page says a file is (an image's alt text, a caption,
+ * the heading over an audio player): used as it is, when it says something.
+ * Unlike a link's text, no verb comes off it (“View from the summit”).
+ *
+ * @param {string | undefined} text - The words.
+ * @returns {string | null} The name, or null.
+ * @example
+ * fromLabel('View from the summit');  // 'View from the summit'
+ * fromLabel('image');                 // null
+ */
+export function fromLabel(text) {
+  return text ? meaningful(text) : null;
+}
+
+/**
  * A name from the text of the link that started the download: its verb
  * (“Download”) and note about the file (“(PDF, 2 MB)”) taken off.
  *
