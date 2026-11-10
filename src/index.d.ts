@@ -16,6 +16,31 @@ export {
 export type { SanitizeOptions } from './name.js';
 
 export {
+	splitName,
+	joinName,
+	baseName,
+	decodeName,
+	stripTracking,
+	stripCopyMarks,
+	tidySpacing,
+	cleanName,
+	isDeviceName,
+	isMeaningless,
+	siteName,
+	fromLinkText,
+	fromTitle,
+	fromQuery,
+	fromPath,
+	extensionFor,
+	MAX_NAME_LENGTH,
+	hostOf,
+	finishName,
+	ruleName,
+	withSite,
+} from './naming/index.js';
+export type { DownloadFacts, NameParts, RuleName, RuleNameOptions } from './naming/index.js';
+
+export {
 	isImage,
 	isAudio,
 	isVideo,

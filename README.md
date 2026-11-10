@@ -138,6 +138,47 @@ humanize('my-product-banner.jpg');     // 'My Product Banner'
 humanize('dark_ambient_loop_01.wav');  // 'Dark Ambient Loop 01'
 ```
 
+### Naming a file from the web
+
+A useful name for a file before it's saved, from what's known about it: its own name, its
+address, its type, and the page and link it came from. Written for Better Downloads and Better Saves
+(Chrome extensions), pure, so it runs anywhere.
+
+```js
+import { ruleName, cleanName, isMeaningless, finishName } from '@arraypress/file-utils';
+
+ruleName({
+  filename: 'download (3).pdf', mime: 'application/pdf',
+  referrer: 'https://billing.acme.com/invoices', pageTitle: 'Invoice 2026-11 – Acme Billing',
+}).name;                                                     // 'Acme Invoice 2026-11.pdf'
+
+// An image whose name is a CDN's id, named from its alt text, into a folder already named after the site:
+ruleName({ filename: 'photo-1506744038136-46273834b3fb', mime: 'image/jpeg',
+  referrer: 'https://unsplash.com/photos/x', linkText: 'A mountain lake at dawn' }, { site: false }).name;
+                                                             // 'A mountain lake at dawn.jpg'
+cleanName('Annual%20Report%202025%20(1).pdf');               // 'Annual Report 2025.pdf'
+isMeaningless('3f2a9c1e-7b4d-4e8a-9c2b-1a2b3c4d5e6f');       // true
+isMeaningless('IMG_2384');                                   // false (a camera's name: kept)
+finishName('Q3: “final” report?', 'php', 'application/pdf'); // 'Q3 - “final” report.pdf'
+```
+
+**`ruleName(facts, options?)`** — `facts`: `filename` (the name or path the browser would use),
+and any of `url`, `finalUrl`, `mime`, `referrer` (the page), `pageTitle`, `linkText` (the link's
+text, or what the page says about the file: alt text, a caption). A name that says something is
+only tidied (`cleanName`) and given the right extension; a meaningless one is named from, in
+order, a file name in the address's query, the link text, the page's title (the site's own name
+taken off), the address's path, with the site's name in front (`options.site: false` leaves it
+off). Returns `{ name, meaningless, ext }`. Every name ends with **`finishName(base, ext, mime)`**:
+readable stand-ins for `:?*"<>|/`, `sanitize`, at most `MAX_NAME_LENGTH` (120) characters.
+
+The pieces, each pure: `splitName` / `joinName` / `baseName` (`tar.gz` kept together, “Version
+2.0” has no extension), `decodeName`, `stripTracking`, `stripCopyMarks`, `tidySpacing`,
+`cleanName`, `isMeaningless` (generic words, numbers, hashes, base64, a generic word beside an id),
+`isDeviceName` (“IMG_2384”, “PXL_…”, “Screenshot …”: never meaningless), `siteName` (“Acme” from
+billing.acme.co.uk), `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`,
+`extensionFor(ext, mime)` (the extension it has when it fits the type, the type's usual one when
+it's missing or wrong, and never a program's changed).
+
 ### Type
 
 **`isImage(mime)`** · **`isAudio(mime)`** · **`isVideo(mime)`** · **`isDocument(mime)`** ·

@@ -3,7 +3,8 @@
  *
  * The three things you know about a file before you open it — its size,
  * its name, and its type. Formatting bytes, sanitising filenames for
- * storage and `Content-Disposition`, and classifying MIME types.
+ * storage and `Content-Disposition`, useful names for files from the web,
+ * and classifying MIME types.
  *
  * For what's *inside* a file — EXIF, IPTC, ID3 — see
  * `@arraypress/file-metadata`, which parses the bytes themselves.
@@ -38,6 +39,33 @@ export {
 	renameKeepingExtension,
 	humanize,
 } from './name.js';
+
+/* Naming — a useful name for a file from the web: tidied, judged, named
+ * from the page and the address when its own says nothing, finished safe.
+ */
+export {
+	splitName,
+	joinName,
+	baseName,
+	decodeName,
+	stripTracking,
+	stripCopyMarks,
+	tidySpacing,
+	cleanName,
+	isDeviceName,
+	isMeaningless,
+	siteName,
+	fromLinkText,
+	fromTitle,
+	fromQuery,
+	fromPath,
+	extensionFor,
+	MAX_NAME_LENGTH,
+	hostOf,
+	finishName,
+	ruleName,
+	withSite,
+} from './naming/index.js';
 
 /* Type — classification and labelling of MIME strings. */
 export {

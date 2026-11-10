@@ -1,0 +1,112 @@
+/**
+ * The rules that tidy a name without changing what it says: web-address
+ * encoding decoded (`%20`, `+`), tracking parameters that leaked into it
+ * taken out, the copy marks browsers and file managers add (“(1)”,
+ * “ - Copy”, “ copy 2”) dropped, and spacing tidied. Pure.
+ *
+ * @module @arraypress/file-utils/naming/clean
+ */
+
+import { joinName, splitName } from './split.js';
+
+/**
+ * Query parameters that only track, as they turn up inside file names
+ * (a `?` that became `_` or stayed). The full rules for links are
+ * @arraypress/clean-link's; a name only ever carries these few.
+ */
+const TRACKING = /(?:^|[?&_#;])(?:utm_[a-z]+|fbclid|gclid|gbraid|wbraid|dclid|msclkid|yclid|mc_cid|mc_eid|_hsenc|_hsmi|hsCtaTracking|igshid|igsh|mkt_tok|oly_enc_id|oly_anon_id|vero_id|ref_src|trk|si)=[^&_#;.]*/gi;
+
+/** Copy marks at the end of a name: “ (1)” to “ (99)”, “ - Copy”, “ - Copy (2)”, “ copy”, “ copy 3”. */
+const COPY_MARK = /(?:\s*\(\d{1,2}\)|\s+-\s+copy(?:\s*\(\d{1,2}\))?|\s+copy(?:\s+\d{1,2})?)$/i;
+
+/**
+ * Decode web-address encoding in a name, once or twice (`%2520` is a space
+ * encoded twice). Text that isn't valid encoding is left as it is.
+ *
+ * @param {string} text - A name, or part of one.
+ * @returns {string} It decoded.
+ * @example
+ * decodeName('Annual%20Report%202025');  // 'Annual Report 2025'
+ * decodeName('Annual+Report+2025');      // 'Annual Report 2025'
+ * decodeName('C++ Primer');              // 'C++ Primer'
+ * decodeName('100%');                    // '100%'
+ */
+export function decodeName(text) {
+  let decoded = text;
+  for (let pass = 0; pass < 2 && /%[0-9A-Fa-f]{2}/.test(decoded); pass++) {
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      break;
+    }
+  }
+  // A + between two words is a space from a form or query; “C++” and “A+B” with spaces around stay.
+  if (!/\s/.test(decoded)) decoded = decoded.replace(/(?<=[\p{L}\p{N}])\+(?=[\p{L}\p{N}])/gu, ' ');
+  return decoded;
+}
+
+/**
+ * Take tracking parameters out of a name, and anything a query left after
+ * a real extension (“photo.jpg_utm_source=x” is “photo.jpg”).
+ *
+ * @param {string} name - A file name.
+ * @returns {string} It without them.
+ * @example
+ * stripTracking('Brochure_utm_source=newsletter&utm_medium=email.pdf'); // 'Brochure.pdf'
+ * stripTracking('photo.jpg?w=1200&fbclid=abc');                          // 'photo.jpg'
+ */
+export function stripTracking(name) {
+  // A query after an extension: “x.jpg?w=1”, “x.jpg_w=1” (Chrome turns ? into _).
+  const query = /^(.+?\.[A-Za-z0-9]{2,5})[?_&][^.]*=[^.]*$/.exec(name);
+  const cut = query ? query[1] : name;
+  return cut.replace(TRACKING, '').replace(/[?&]+(?=\.[^.]+$)|[?&]+$/, '');
+}
+
+/**
+ * Drop the copy marks from the end of a base name (any number of them).
+ *
+ * @param {string} base - A name without its extension.
+ * @returns {string} It without them.
+ * @example
+ * stripCopyMarks('download (3)');        // 'download'
+ * stripCopyMarks('Budget - Copy (2)');   // 'Budget'
+ * stripCopyMarks('Notes copy 2');        // 'Notes'
+ * stripCopyMarks('Room (101)');          // 'Room (101)' (three digits: part of the name)
+ */
+export function stripCopyMarks(base) {
+  let stripped = base;
+  for (let next = stripped.replace(COPY_MARK, ''); next !== stripped && /\S/.test(next); next = stripped.replace(COPY_MARK, '')) {
+    stripped = next;
+  }
+  return stripped;
+}
+
+/**
+ * Tidy spacing: runs of spaces become one, and spaces, dots, dashes and
+ * underscores go from the ends.
+ *
+ * @param {string} text - A base name.
+ * @returns {string} It tidied.
+ * @example
+ * tidySpacing('  Q3   report_ '); // 'Q3 report'
+ */
+export function tidySpacing(text) {
+  return text.replace(/\s+/g, ' ').replace(/^[\s._-]+|[\s._-]+$/g, '');
+}
+
+/**
+ * Every rule here, in order, on a whole file name: decoded, tracking out,
+ * copy marks dropped, spacing tidied. The extension is kept as written.
+ *
+ * @param {string} name - The name Chrome would use.
+ * @returns {string} The tidied name (the original, if tidying would leave nothing).
+ * @example
+ * cleanName('download (3).pdf');                      // 'download.pdf'
+ * cleanName('Annual%20Report%202025%20(1).pdf');      // 'Annual Report 2025.pdf'
+ * cleanName('IMG_2384.JPG');                          // 'IMG_2384.JPG'
+ */
+export function cleanName(name) {
+  const { base, ext } = splitName(stripTracking(decodeName(name)));
+  const cleaned = tidySpacing(stripCopyMarks(base));
+  return cleaned ? joinName(cleaned, ext) : name;
+}
