@@ -146,3 +146,34 @@ export function withSite(name, host) {
   const site = siteName(host);
   return site && !name.toLowerCase().includes(site.toLowerCase()) ? `${site} ${name}` : name;
 }
+
+/** Longest page name {@link pageName} gives by default: room for more after it (a date, a file's own name). */
+export const MAX_PAGE_NAME_LENGTH = 80;
+
+/**
+ * A name for something made from a whole page (a folder of its files, a
+ * screenshot of it): its title without the site's own words, the site's
+ * name in front, else the site's name alone (as the title spells it), else its host; what file
+ * systems refuse made readable; a long one cut between words.
+ *
+ * @param {{url: string, title?: string}} page - The page's address and title.
+ * @param {{maxLength?: number, fallback?: string}} [options] - The longest name (default
+ *   {@link MAX_PAGE_NAME_LENGTH}) and the name when nothing says anything (default 'Page').
+ * @returns {string} The name, without an extension.
+ * @example
+ * pageName({ url: 'https://www.example.com/lakes', title: 'Lake District trips – Example' }); // 'Example Lake District trips'
+ * pageName({ url: 'https://github.com/arraypress', title: 'GitHub' });                       // 'GitHub'
+ * pageName({ url: 'about:blank', title: '' }, { fallback: 'Screenshot' });                    // 'Screenshot'
+ */
+export function pageName(page, options = {}) {
+  const { maxLength = MAX_PAGE_NAME_LENGTH, fallback = 'Page' } = options;
+  const host = hostOf(page.url);
+  const site = siteName(host);
+  const title = (page.title ?? '').trim();
+  // A title that is only the site's name keeps its own spelling (“GitHub”, not “Github”).
+  const named = withSite(fromTitle(title, host), host) || (title.toLowerCase() === site.toLowerCase() ? title : site) || title;
+  const readable = (named || host.replace(/:\d+$/, '')).replace(/\s*:\s*/g, ' - ').replace(/[/\\]/g, '-');
+  // A long name is cut between words.
+  const cut = readable.length > maxLength ? readable.slice(0, maxLength + 1).replace(/\s+\S*$/, '') : readable;
+  return sanitize(cut.trim(), { fallback, maxLength, replacement: ' ' }).replace(/\s+/g, ' ').trim() || fallback;
+}

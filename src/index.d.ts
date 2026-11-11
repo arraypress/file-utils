@@ -39,6 +39,8 @@ export {
 	finishName,
 	ruleName,
 	withSite,
+	pageName,
+	MAX_PAGE_NAME_LENGTH,
 } from './naming/index.js';
 export type { DownloadFacts, NameParts, RuleName, RuleNameOptions } from './naming/index.js';
 

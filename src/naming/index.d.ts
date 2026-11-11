@@ -94,3 +94,7 @@ export function finishName(base: string, ext: string, mime: string | undefined):
 export function ruleName(facts: DownloadFacts, options?: RuleNameOptions): RuleName;
 /** A name with the site's name in front, unless it already says it. */
 export function withSite(name: string | null, host: string): string | null;
+/** Longest page name `pageName` gives by default. */
+export const MAX_PAGE_NAME_LENGTH: number;
+/** A name for something made from a whole page (a folder of its files, a screenshot of it): its title with the site's name, cut between words. */
+export function pageName(page: { url: string; title?: string }, options?: { maxLength?: number; fallback?: string }): string;

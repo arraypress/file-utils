@@ -180,6 +180,11 @@ billing.acme.co.uk), `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fro
 `extensionFor(ext, mime)` (the extension it has when it fits the type, the type's usual one when
 it's missing or wrong, and never a program's changed).
 
+**`pageName({ url, title }, { maxLength, fallback })`**: a name for something made from a whole
+page (a folder of its files, a screenshot of it): `withSite(fromTitle(title))`, else the site's
+name, else the host; `:` and slashes made readable; cut between words at `MAX_PAGE_NAME_LENGTH`
+(80). “Lake District trips – Example” on www.example.com → “Example Lake District trips”.
+
 ### Type
 
 **`isImage(mime)`** · **`isAudio(mime)`** · **`isVideo(mime)`** · **`isDocument(mime)`** ·

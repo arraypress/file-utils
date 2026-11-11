@@ -1,7 +1,7 @@
 {
   "name": "@arraypress/file-utils",
-  "version": "1.3.0",
-  "description": "File utilities — human-readable sizes, filename sanitisation for storage and Content-Disposition, useful names for files from the web, and MIME type classification. Zero dependencies.",
+  "version": "1.4.0",
+  "description": "File utilities \u2014 human-readable sizes, filename sanitisation for storage and Content-Disposition, useful names for files from the web, and MIME type classification. Zero dependencies.",
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",

@@ -9,7 +9,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
-  isDeviceName, isMeaningless, MAX_NAME_LENGTH, finishName, hostOf, ruleName, withSite, baseName, joinName, splitName,
+  isDeviceName, isMeaningless, MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, withSite, baseName, joinName, splitName,
 } from '../src/index.js';
 
 /** @typedef {import('../src/naming/index.js').DownloadFacts} DownloadFacts */
@@ -370,5 +370,34 @@ describe('size marks and inner extensions (1.3.0)', () => {
     assert.equal(cleanName('64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp'), '64547710-dd08-11f1-97df-bd0937690c4d.webp');
     assert.equal(cleanName('report.pdf.zip'), 'report.pdf.zip');
     assert.equal(ruleName({ filename: '64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp', label: 'Floods in the north' }, { site: false }).name, 'Floods in the north.webp');
+  });
+});
+
+describe('pageName', () => {
+  /** @type {[{url: string, title?: string}, string][]} */
+  const PAGES = [
+    [{ url: 'https://www.example.com/lakes', title: 'Lake District trips – Example' }, 'Example Lake District trips'],
+    [{ url: 'https://github.com/arraypress', title: 'GitHub' }, 'GitHub'],
+    [{ url: 'https://en.wikipedia.org/wiki/Bangkok', title: 'Bangkok - Wikipedia' }, 'Wikipedia Bangkok'],
+    [{ url: 'https://shop.example.co.uk/a', title: 'Basket: 2 items | Example' }, 'Example Basket - 2 items'],
+    [{ url: 'http://127.0.0.1:8080/x', title: '' }, '127.0.0.1'],
+    [{ url: 'https://docs.example.com/a/b', title: 'Read a/b or c\\d' }, 'Example Read a-b or c-d'],
+  ];
+  for (const [page, want] of PAGES) {
+    it(`${page.title || page.url} → ${want}`, () => assert.equal(pageName(page), want));
+  }
+
+  it('falls back when nothing says anything', () => {
+    assert.equal(pageName({ url: 'about:blank', title: '' }), 'Page');
+    assert.equal(pageName({ url: 'not an address' }, { fallback: 'Screenshot' }), 'Screenshot');
+  });
+
+  it('cuts a long name between words, at most maxLength', () => {
+    const name = pageName({ url: 'https://example.com/', title: `${'Weekly report on the lakes '.repeat(8)}– Example` });
+    assert.ok(name.length <= MAX_PAGE_NAME_LENGTH, name);
+    assert.match(name, /^Example Weekly report on the lakes .*\S$/);
+    assert.ok(`${'Weekly report on the lakes '.repeat(8)}`.includes(`${name.slice('Example '.length)} `), `cut between words: ${name}`);
+    assert.equal(pageName({ url: 'https://example.com/', title: 'One two three four' }, { maxLength: 14 }), 'Example One');
+    assert.equal(pageName({ url: 'https://example.com/', title: 'One two three four' }, { maxLength: 15 }), 'Example One two');
   });
 });

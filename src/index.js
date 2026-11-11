@@ -67,6 +67,8 @@ export {
 	finishName,
 	ruleName,
 	withSite,
+	pageName,
+	MAX_PAGE_NAME_LENGTH,
 } from './naming/index.js';
 
 /* Type — classification and labelling of MIME strings. */
