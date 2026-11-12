@@ -17,6 +17,15 @@
 const UNSAFE = /[/\\:*?"<>|\x00-\x1f\x7f]/g;
 
 /**
+ * Characters that can't be seen and say nothing, or turn the text round:
+ * the soft hyphen, the zero-width space, bidirectional marks, overrides
+ * and isolates, the word joiner and its invisible neighbours, the
+ * byte-order mark. The zero-width joiner and non-joiner stay: Persian and
+ * Indic words and emoji families are spelt with them.
+ */
+const HIDDEN = /[\u00ad\u061c\u180e\u200b\u200e\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g;
+
+/**
  * Windows reserved device names (case-insensitive).
  */
 const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
@@ -25,8 +34,10 @@ const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
  * Sanitize a filename for safe storage and HTTP headers.
  *
  * Strips path separators, control characters, and platform-unsafe
- * characters. Prevents path traversal (`../`), null byte injection,
- * and Content-Disposition header injection.
+ * characters, and the invisible and direction-changing ones (zero-width
+ * spaces, bidirectional overrides, the byte-order mark). Prevents path
+ * traversal (`../`), null byte injection, Content-Disposition header
+ * injection and a name that displays as another (`invoice‮fdp.exe`).
  *
  * @param {string} filename - The raw filename to sanitize.
  * @param {Object} [options] - Options.
@@ -54,6 +65,8 @@ export function sanitize(filename, options = {}) {
     .replace(/^.*[/\\]/, '')
     // Replace unsafe characters
     .replace(UNSAFE, replacement)
+    // Drop what can't be seen or turns the text round (“invoice\u202Efdp.exe” shows as “invoiceexe.pdf”)
+    .replace(HIDDEN, '')
     // Collapse multiple replacements
     .replace(new RegExp(`\\${replacement}{2,}`, 'g'), replacement)
     // Remove leading/trailing dots and spaces (Windows issues)
@@ -147,12 +160,13 @@ export function replaceExtension(filename, ext) {
 
 /**
  * Characters that are invisible or change direction: control characters,
- * zero-width spaces and joiners, bidirectional overrides, the byte-order mark.
+ * zero-width spaces and joiners, bidirectional marks, overrides and
+ * isolates, the byte-order mark.
  * A right-to-left override is how `invoice‮fdp.exe` displays as
  * `invoiceexe.pdf`.
  */
 // eslint-disable-next-line no-control-regex
-const INVISIBLE = /[\u0000-\u001f\u007f​-‏‪-‮⁠-⁤﻿]/g;
+const INVISIBLE = /[\u0000-\u001f\u007f\u061c\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g;
 
 /** Any letter or digit, in any script. */
 const LETTER_OR_NUMBER = /[\p{L}\p{N}]/u;

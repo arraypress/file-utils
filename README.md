@@ -177,8 +177,10 @@ The pieces, each pure: `splitName` / `joinName` / `baseName` (`tar.gz` kept toge
 `cleanName`, `isMeaningless` (generic words, numbers, hashes, base64, a generic word beside an id),
 `isDeviceName` (“IMG_2384”, “PXL_…”, “Screenshot …”: never meaningless), `siteName` (“Acme” from
 billing.acme.co.uk), `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`,
-`extensionFor(ext, mime)` (the extension it has when it fits the type, the type's usual one when
-it's missing or wrong, and never a program's changed).
+`extensionFor(ext, mime)` (a real extension is always kept: “main.c” sent as text/plain,
+“deck.key” as application/zip and “song.m4a” as video/mp4 are still themselves; the type's usual
+one only when there is none, or it is the server script's that sent the file, “download.php”;
+plain text adds none to “Makefile”; never a program's changed or given).
 
 **`pageName({ url, title }, { maxLength, fallback })`**: a name for something made from a whole
 page (a folder of its files, a screenshot of it): `withSite(fromTitle(title))`, else the site's
@@ -205,7 +207,8 @@ getLabel(null);                // 'Unknown'
 ```
 
 **`extensionFromMime(mime)`** — the usual extension for a content type, or `''`. Covers common
-web and media types rather than the full IANA registry.
+web, media and office types and the aliases servers send (`audio/mp3`, `image/jpg`,
+`application/x-zip-compressed`) rather than the full IANA registry; case and parameters don't matter.
 
 ```js
 extensionFromMime('image/jpeg');  // 'jpg'

@@ -7,6 +7,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { sanitize } from '../src/name.js';
 import {
   cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
   isDeviceName, isMeaningless, MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, withSite, baseName, joinName, splitName,
@@ -266,7 +267,19 @@ describe('extensions for types', () => {
     ['JPEG', 'image/jpeg', 'JPEG'],
     ['jpg', 'image/jpeg', 'jpg'],
     ['webp', 'image/png', 'webp'],
-    ['html', 'image/png', 'png'],
+    ['aspx', 'image/png', 'png'],
+    ['do', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx'],
+    ['', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'],
+    ['', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'pptx'],
+    ['', 'application/vnd.ms-excel', 'xls'],
+    ['', 'application/x-zip-compressed', 'zip'],
+    ['', 'audio/mp3', 'mp3'],
+    ['', 'image/jpg', 'jpg'],
+    ['', 'Image/PNG', 'png'],
+    ['', 'audio/x-wav', 'wav'],
+    ['', 'text/plain', ''],
+    ['php', 'text/plain', 'txt'],
+    ['', 'text/javascript', ''],
     ['tar.gz', 'application/gzip', 'tar.gz'],
     ['tgz', 'application/x-gzip', 'tgz'],
     ['docx', 'application/zip', 'docx'],
@@ -286,12 +299,45 @@ describe('extensions for types', () => {
   }
 });
 
+describe('a real extension is the file’s own, whatever type the site sends', () => {
+  for (const [filename, mime] of /** @type {const} */ ([
+    // Plain text is what servers call anything they have no type for.
+    ['backup.sql', 'text/plain'], ['key.pem', 'text/plain'], ['id_rsa.pub', 'text/plain'], ['logo.svg', 'text/plain'],
+    ['analysis.ipynb', 'text/plain'], ['main.c', 'text/plain'], ['app.ts', 'text/plain'], ['style.css', 'text/plain'],
+    ['nginx.conf', 'text/plain'], ['cal.ics', 'text/plain'], ['contact.vcf', 'text/plain'], ['index.html', 'text/plain'],
+    ['Makefile', 'text/plain'], ['LICENSE', 'text/plain'], ['README', 'text/plain; charset=utf-8'],
+    // Containers: the file is a zip, a gzip, JSON or XML inside, and something else by name.
+    ['deck.key', 'application/zip'], ['map.kmz', 'application/zip'], ['macro.docm', 'application/zip'],
+    ['report.pages', 'application/zip'], ['plugin.vsix', 'application/zip'], ['model.3mf', 'application/zip'],
+    ['assets.unitypackage', 'application/gzip'], ['session.har', 'application/json'], ['rows.jsonl', 'application/json'],
+    ['state.tfstate', 'application/json'], ['track.gpx', 'application/xml'], ['feed.xml', 'text/html'],
+    // The same container under another name, and a page that isn't the file.
+    ['song.m4a', 'video/mp4'], ['clip.mov', 'video/mp4'], ['art.ai', 'application/pdf'], ['photo.jpg', 'text/html'],
+    ['page.html', 'image/png'], ['notes.md', 'text/html'],
+  ])) {
+    it(`${filename} sent as ${mime} keeps its name`, () => {
+      assert.equal(ruleName({ filename, mime }).name, filename);
+    });
+  }
+});
+
 describe('finished names are safe on macOS, Windows and Linux', () => {
   it('characters file systems refuse become readable stand-ins', () => {
     assert.equal(finishName('Q3: “final” report?', 'php', 'application/pdf'), 'Q3 - “final” report.pdf');
-    assert.equal(finishName('a/b\\c', '', 'text/plain'), 'a-b-c.txt');
+    assert.equal(finishName('a/b\\c', '', 'text/html'), 'a-b-c.html');
     assert.equal(finishName('<draft> *v2* | "x"', 'txt', 'text/plain'), 'draft v2 x.txt');
     assert.equal(finishName('tab\there\u0000', 'txt', 'text/plain'), 'tab here.txt');
+  });
+
+  it('what can’t be seen or turns the text round is dropped', () => {
+    assert.equal(finishName('invoice\u202Efdp', 'exe', ''), 'invoicefdp.exe');
+    assert.equal(finishName('a\u200Bb\u2066c\u2069\uFEFF', 'pdf', 'application/pdf'), 'abc.pdf');
+    assert.equal(sanitize('invoice\u202Efdp.exe'), 'invoicefdp.exe');
+    assert.equal(sanitize('con\u200B.txt'), '_con.txt');
+    assert.equal(sanitize('\u202E\u200F'), 'file');
+    // Joiners spell words and emoji: they stay.
+    assert.equal(sanitize('می\u200Cخواهم.pdf'), 'می\u200Cخواهم.pdf');
+    assert.equal(sanitize('\u{1F468}\u200D\u{1F469}\u200D\u{1F467}.png'), '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}.png');
   });
 
   it('Windows’ reserved names and trailing dots are avoided', () => {

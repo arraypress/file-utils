@@ -5,7 +5,16 @@ All notable changes to `@arraypress/file-utils` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] — Unreleased
+## [1.4.1] — Unreleased
+
+### Fixed
+
+- `extensionFor` (so `ruleName` and `finishName`) never replaces a real extension. The type a site sends is too often a guess: “main.c”, “backup.sql”, “key.pem”, “logo.svg” and “notebook.ipynb” sent as text/plain became “.txt”, “deck.key” and “map.kmz” sent as application/zip “.zip”, “song.m4a” sent as video/mp4 “.mp4”, “feed.xml” sent as text/html “.html”. The type now decides only for a name with no extension or with a server script's (“download.php”, “.aspx”, “.jsp”, “.do”…), and plain text adds nothing to “Makefile” or “LICENSE”.
+- `extensionFromMime` knows the Office and OpenDocument types (docx, xlsx, pptx, xls, ppt, odt, ods, odp) and the aliases servers send (`application/x-zip-compressed`, `audio/mp3`, `image/jpg`, `audio/x-wav`, `image/vnd.microsoft.icon`, `application/vnd.rar`, `text/xml`…), and reads a type in any case, with or without parameters: a Word document with no extension got none.
+- `sanitize` drops what can't be seen or turns the text round (bidirectional overrides and isolates, zero-width spaces, the soft hyphen, the byte-order mark), so “invoice‮fdp.exe” no longer displays as “invoiceexe.pdf”; the zero-width joiners Persian, Indic words and emoji are spelt with stay. `renameKeepingExtension` drops the isolates (U+2066–U+2069) and the Arabic letter mark too.
+- `splitName` takes extensions up to 14 characters (“.unitypackage”, “.webmanifest”).
+
+## [1.4.0] — 2026-11-11
 
 ### Added
 

@@ -1,7 +1,7 @@
 /**
  * A file name's two halves: what it's called and what kind of file it is.
  * `tar.gz`-style double extensions stay together, and only something that
- * looks like an extension (1–10 letters or digits after the last dot) is
+ * looks like an extension (1–14 letters or digits after the last dot) is
  * one, so "Version 2.0 final" has none. Pure.
  *
  * @module @arraypress/file-utils/naming/split
@@ -42,7 +42,7 @@ export function baseName(path) {
  * splitName('.bashrc');             // { base: '.bashrc', ext: '' }
  */
 export function splitName(name) {
-  const match = /^(.+?)\.([A-Za-z0-9]{1,10})$/.exec(name);
+  const match = /^(.+?)\.([A-Za-z0-9]{1,14})$/.exec(name);
   if (!match || /\s/.test(match[2]) || !/[A-Za-z]/.test(match[2]) && match[2].length > 4) return { base: name, ext: '' };
   const [, base, ext] = match;
   const tar = /^(.+)\.(tar)$/i.exec(base);

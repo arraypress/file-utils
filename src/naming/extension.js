@@ -1,16 +1,19 @@
 /**
- * The right extension for a download's type: the one it has when that fits
- * the type the site sent (“.jpeg” for image/jpeg, “.docx” for a Word
- * document), the type's usual one when it's missing or wrong
- * (“download.php” sent as a PDF is “.pdf”), and the one it has whenever the
- * type says nothing (application/octet-stream). Programs keep theirs: what
- * Chrome checks a program by is never changed. Pure; the type tables are
- * @arraypress/file-utils'.
+ * The right extension for a download's type. A real extension is never
+ * changed: the type a site sends is too often a guess (text/plain for
+ * “main.c”, “key.pem” and “notebook.ipynb”; application/zip for “deck.key”
+ * and “map.kmz”; video/mp4 for “song.m4a”; text/html for “feed.xml”), and
+ * the file's own name is what its program opens it by. The type decides
+ * only when there is nothing to keep: no extension, or the extension of the
+ * server script that sent the file (“download.php” sent as a PDF is
+ * “.pdf”). Plain text adds nothing to a name without one (“Makefile”,
+ * “LICENSE”), and programs keep theirs: what Chrome checks a program by is
+ * never changed or given. Pure; the type tables are @arraypress/file-utils'.
  *
  * @module @arraypress/file-utils/naming/extension
  */
 
-import { extensionFromMime, getCategory, getCategoryFromName } from '../type.js';
+import { extensionFromMime } from '../type.js';
 
 /** Types that say nothing about what a file is. */
 const VAGUE_TYPES = new Set([
@@ -24,34 +27,14 @@ const PROGRAMS = new Set([
   'vbs', 'js', 'jse', 'wsf', 'jar', 'sh', 'command', 'py', 'reg', 'lnk', 'crx', 'xpi',
 ]);
 
-/** Extensions that are the same type as another's usual one. */
-const SAME_TYPE = /** @type {Record<string, readonly string[]>} */ ({
-  'text/plain': ['txt', 'text', 'log', 'md', 'csv', 'tsv', 'json', 'xml', 'yaml', 'yml', 'ini', 'srt', 'vtt'],
-  'text/html': ['html', 'htm', 'xhtml'],
-  'application/xml': ['xml', 'svg', 'gpx', 'kml', 'rss', 'atom'],
-  'text/xml': ['xml', 'svg', 'gpx', 'kml', 'rss'],
-  'application/json': ['json', 'geojson', 'map'],
-  'application/zip': ['zip', 'docx', 'xlsx', 'pptx', 'epub', 'jar', 'apk', 'ipa', 'sketch', 'odt', 'ods', 'odp', 'cbz', 'whl', 'nupkg'],
-  'application/gzip': ['gz', 'tgz', 'tar.gz'],
-  'application/x-gzip': ['gz', 'tgz', 'tar.gz'],
-  'audio/ogg': ['ogg', 'oga', 'opus'],
-  'video/mp4': ['mp4', 'm4v'],
-  'audio/mp4': ['m4a', 'm4b', 'mp4', 'aac'],
-});
+/** Extensions of the server scripts and handlers that send files: a page's, not the file's. */
+const SERVER_SCRIPTS = new Set([
+  'php', 'php3', 'php4', 'php5', 'phtml', 'asp', 'aspx', 'ashx', 'asmx', 'axd', 'jsp', 'jspx', 'jsf', 'do', 'action', 'cgi',
+  'fcgi', 'cfm',
+]);
 
-/**
- * Whether an extension fits a type: the type's usual one, one of the same
- * type, or one of the same kind (image, audio, video, document, archive).
- *
- * @param {string} ext - An extension, lowercase.
- * @param {string} mime - A type, lowercase without parameters.
- * @returns {boolean} True when it fits.
- */
-function fits(ext, mime) {
-  if (extensionFromMime(mime) === ext || SAME_TYPE[mime]?.includes(ext)) return true;
-  const kind = getCategory(mime);
-  return kind !== 'other' && getCategoryFromName(`x.${ext}`) === kind;
-}
+/** Types whose usual extension isn't worth adding to a name that has none (“Makefile”, “LICENSE”, “README”). */
+const UNNAMED_TYPES = new Set(['text/plain']);
 
 /**
  * The extension a download should end with.
@@ -64,13 +47,15 @@ function fits(ext, mime) {
  * extensionFor('', 'image/png');                      // 'png'
  * extensionFor('JPEG', 'image/jpeg');                 // 'JPEG'
  * extensionFor('bin', 'application/octet-stream');    // 'bin'
+ * extensionFor('ipynb', 'text/plain');                // 'ipynb'
+ * extensionFor('', 'text/plain');                     // ''
  * extensionFor('exe', 'text/html');                   // 'exe'
  */
 export function extensionFor(ext, mime) {
   const type = (mime ?? '').toLowerCase().split(';')[0].trim();
   const lower = ext.toLowerCase();
   if (PROGRAMS.has(lower) || VAGUE_TYPES.has(type)) return ext;
-  if (lower && fits(lower, type)) return ext;
+  if (lower ? !SERVER_SCRIPTS.has(lower) : UNNAMED_TYPES.has(type)) return ext;
   const usual = extensionFromMime(type);
   return usual && !PROGRAMS.has(usual) ? usual : ext;
 }

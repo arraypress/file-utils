@@ -40,6 +40,33 @@ const ARCHIVE_TYPES = [
   'application/x-bzip2',
 ];
 
+/** The usual extension of each content type, the aliases servers send included. */
+const MIME_EXTENSIONS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({
+  'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/pjpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
+  'image/webp': 'webp', 'image/svg+xml': 'svg', 'image/avif': 'avif', 'image/heic': 'heic', 'image/heif': 'heif',
+  'image/jxl': 'jxl', 'image/tiff': 'tiff', 'image/bmp': 'bmp', 'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
+  'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/ogg': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
+  'audio/wave': 'wav', 'audio/vnd.wave': 'wav', 'audio/webm': 'webm', 'audio/flac': 'flac', 'audio/x-flac': 'flac',
+  'audio/aac': 'aac', 'audio/x-aac': 'aac', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/midi': 'mid',
+  'video/mp4': 'mp4', 'video/x-m4v': 'm4v', 'video/webm': 'webm', 'video/ogg': 'ogv', 'video/quicktime': 'mov',
+  'video/x-msvideo': 'avi', 'video/x-matroska': 'mkv', 'video/mpeg': 'mpg',
+  'application/pdf': 'pdf', 'application/x-pdf': 'pdf', 'application/zip': 'zip', 'application/x-zip-compressed': 'zip',
+  'application/x-zip': 'zip', 'application/gzip': 'gz', 'application/x-gzip': 'gz', 'application/x-tar': 'tar',
+  'application/x-7z-compressed': '7z', 'application/x-rar-compressed': 'rar', 'application/vnd.rar': 'rar',
+  'application/x-bzip2': 'bz2', 'application/epub+zip': 'epub',
+  'application/json': 'json', 'application/xml': 'xml', 'text/xml': 'xml', 'application/javascript': 'js',
+  'text/javascript': 'js',
+  'text/plain': 'txt', 'text/html': 'html', 'text/css': 'css', 'text/csv': 'csv', 'text/markdown': 'md',
+  'text/calendar': 'ics', 'text/vcard': 'vcf',
+  'application/msword': 'doc', 'application/rtf': 'rtf', 'text/rtf': 'rtf',
+  'application/vnd.ms-excel': 'xls', 'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/vnd.oasis.opendocument.text': 'odt', 'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+  'application/vnd.oasis.opendocument.presentation': 'odp',
+}));
+
 // ── Type detection ─────────────────────────────
 
 /**
@@ -161,7 +188,10 @@ export function getLabel(mime) {
  * Get the file extension typically associated with a MIME type.
  *
  * Returns the most common extension (without dot) or an empty string
- * for unknown types. Not exhaustive — covers common web/media types.
+ * for unknown types. Not exhaustive — covers common web, media and office
+ * types and the aliases servers send for them (`audio/mp3`, `image/jpg`,
+ * `application/x-zip-compressed`). Case and parameters (`; charset=…`)
+ * don't matter.
  *
  * @param {string} mime - MIME type string.
  * @returns {string} Extension like "png", "pdf", "mp3", or "".
@@ -173,26 +203,8 @@ export function getLabel(mime) {
  * extensionFromMime('text/plain')       // 'txt'
  */
 export function extensionFromMime(mime) {
-  if (!mime) return '';
-  const map = {
-    'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
-    'image/webp': 'webp', 'image/svg+xml': 'svg', 'image/avif': 'avif',
-    'image/tiff': 'tiff', 'image/bmp': 'bmp', 'image/x-icon': 'ico',
-    'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/wav': 'wav',
-    'audio/webm': 'webm', 'audio/flac': 'flac', 'audio/aac': 'aac',
-    'audio/mp4': 'm4a',
-    'video/mp4': 'mp4', 'video/webm': 'webm', 'video/ogg': 'ogv',
-    'video/quicktime': 'mov', 'video/x-msvideo': 'avi',
-    'application/pdf': 'pdf', 'application/zip': 'zip',
-    'application/gzip': 'gz', 'application/x-tar': 'tar',
-    'application/x-7z-compressed': '7z', 'application/x-rar-compressed': 'rar',
-    'application/json': 'json', 'application/xml': 'xml',
-    'application/javascript': 'js',
-    'text/plain': 'txt', 'text/html': 'html', 'text/css': 'css',
-    'text/csv': 'csv', 'text/markdown': 'md',
-    'application/msword': 'doc', 'application/rtf': 'rtf',
-  };
-  return map[mime] || '';
+  if (!mime || typeof mime !== 'string') return '';
+  return MIME_EXTENSIONS[mime.toLowerCase().split(';')[0].trim()] || '';
 }
 
 // ── By name ────────────────────────────────────
