@@ -12,6 +12,7 @@ export {
 	replaceExtension,
 	renameKeepingExtension,
 	humanize,
+	isReservedName,
 } from './name.js';
 export type { SanitizeOptions } from './name.js';
 
@@ -28,6 +29,7 @@ export {
 	isDeviceName,
 	isMeaningless,
 	siteName,
+	namesSite,
 	fromLabel,
 	fromLinkText,
 	fromTitle,

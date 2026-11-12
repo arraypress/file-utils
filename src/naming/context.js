@@ -18,11 +18,36 @@ const NAME_PARAMS = ['filename', 'file_name', 'fileName', 'file', 'name', 'title
 /** Path segments that say how a file is served, not what it is. */
 const PLUMBING = /^(?:api|v\d+|static|assets?|uploads?|files?|downloads?|dl|get|getfile|view|raw|blob|media|content|attachments?|documents?|docs|export|exports|storage|public|private|cdn|s3|object|objects|item|items|id|redirect|go|out|index|default|wp-content|sites|en|en-us|en-gb|www)$/i;
 
-/** Words that start link text and say nothing about the file: “Download”, “Click here to get”, “Save”. */
-const LINK_VERBS = /^(?:(?:click|tap)\s+(?:here\s+)?(?:to\s+)?)?(?:download|get|save|export|view|open|print)(?:\s+(?:the|a|an|your|this|now|here))*\b[\s:–—-]*/i;
+/** The small words that follow a link's verb: “Download the…”, “Get your…”. */
+const ARTICLES = '(?:\\s+(?:the|a|an|your|this|now|here))';
 
-/** A link's note about the file itself: “(PDF, 2.4 MB)”, “[DOCX]”, “PDF 312 KB”. */
-const FILE_NOTE = /\s*[([]?\s*(?:pdf|docx?|xlsx?|csv|zip|pptx?|txt|png|jpe?g|mp[34])\b[^)\]]*?(?:\d+(?:[.,]\d+)?\s*[kmg]i?b)?\s*[)\]]?\s*$|\s*[([]\s*\d+(?:[.,]\d+)?\s*[kmg]i?b\s*[)\]]\s*$/i;
+/**
+ * Words that start link text and say nothing about the file: “Download”,
+ * “Click here to get”, “View the”, “Save:”. Only “download” goes on its
+ * own; the other verbs also start names (“Open University prospectus”,
+ * “Export controls policy”, “Get Out”), so they go only after “click here
+ * to”, before an article or before a colon or dash.
+ */
+const LINK_VERBS = new RegExp(`^(?:(?:click|tap)\\s+(?:here\\s+)?(?:to\\s+)?(?:download|get|save|export|view|open|print)${ARTICLES}*\\b`
+  + `|download${ARTICLES}*\\b|(?:get|save|export|view|open|print)(?:${ARTICLES}+\\b|\\s*[:–—-]))[\\s:–—-]*`, 'i');
+
+/** File types a link names beside its file. */
+const NOTE_TYPES = '(?:pdf|docx?|xlsx?|csv|zip|pptx?|txt|png|jpe?g|mp[34])';
+
+/** A file's size as a link writes it: “2.4 MB”, “312 KB”. */
+const NOTE_SIZE = '\\d+(?:[.,]\\d+)?\\s*[kmg]i?b';
+
+/**
+ * A link's note about the file itself, at its end: in brackets (“(PDF, 2.4
+ * MB)”, “[DOCX]”, “(312 KB)”), or the type as the last word, with or
+ * without a size (“Summer mix mp3”, “PDF 312 KB”). A type in the middle of
+ * the words is part of the name (“The CSV format explained”).
+ */
+const FILE_NOTE = new RegExp(`\\s*[([]\\s*(?:${NOTE_TYPES}\\b[^)\\]]*|${NOTE_SIZE}\\s*)[)\\]]\\s*$`
+  + `|(?:^|\\s+|\\s*[,–—-]\\s*)${NOTE_TYPES}(?:[,\\s]+${NOTE_SIZE})?\\s*$`, 'i');
+
+/** Values of a query parameter that switch something on or off, and name no file. */
+const FLAG = /^(?:true|false|yes|no|on|off|[01]|null|undefined|inline|attachment)$/i;
 
 /** What separates a page's title from its site's name: “Invoice – Acme”, “Acme | Invoice”. */
 const TITLE_SEPARATOR = /\s+[|–—·:•»/-]\s+|\s+::\s+/;
@@ -41,9 +66,27 @@ const TITLE_SEPARATOR = /\s+[|–—·:•»/-]\s+|\s+::\s+/;
 export function siteName(host) {
   const labels = host.toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '').split('.').filter(Boolean);
   if (labels.length < 2 || labels.every((label) => /^\d+$/.test(label))) return '';
-  const twoPart = /^(?:co|com|org|net|gov|ac|edu)$/.test(labels[labels.length - 2]) && labels.length > 2;
+  const twoPart = /^(?:co|com|org|net|gov|gob|govt|go|ac|edu|ne|or|mil|nom|sch|ltd|plc)$/.test(labels[labels.length - 2]) && labels.length > 2;
   const label = labels[labels.length - (twoPart ? 3 : 2)];
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * Whether text names a site: its name as a word of its own (“Acme Billing”
+ * names acme.com; “After the crash” doesn't name ft.com, and “Create an
+ * account” doesn't name ea.com).
+ *
+ * @param {string} text - Part of a title, or a name.
+ * @param {string} site - The site's name ({@link siteName}), in any case.
+ * @returns {boolean} True when the site's name is one of its words.
+ * @example
+ * namesSite('Acme Billing', 'acme');     // true
+ * namesSite('After the crash', 'ft');    // false
+ */
+export function namesSite(text, site) {
+  if (!site) return false;
+  const name = site.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${name}(?![\\p{L}\\p{N}])`, 'iu').test(text);
 }
 
 /**
@@ -104,7 +147,7 @@ export function fromTitle(title, host) {
   if (!title) return null;
   const site = siteName(host).toLowerCase();
   const parts = title.split(TITLE_SEPARATOR).map((part) => part.trim()).filter(Boolean);
-  const own = parts.filter((part) => !site || !part.toLowerCase().includes(site) || parts.length === 1);
+  const own = parts.filter((part) => !site || !namesSite(part, site) || parts.length === 1);
   const kept = own.length ? own : parts;
   // The site's name alone says nothing about the file.
   if (kept.length === 1 && site && kept[0].toLowerCase() === site) return null;
@@ -135,12 +178,13 @@ function webUrl(url) {
  * @example
  * fromQuery('https://x.example/get?filename=Q3%20report.pdf'); // 'Q3 report'
  * fromQuery('https://x.example/get?id=42');                     // null
+ * fromQuery('https://x.example/get?download=true');             // null (a switch, not a name)
  */
 export function fromQuery(url) {
   const parsed = webUrl(url);
   for (const key of parsed ? NAME_PARAMS : []) {
     const value = parsed?.searchParams.get(key);
-    if (value && /\p{L}/u.test(value) && !/^https?:/i.test(value)) {
+    if (value && /\p{L}/u.test(value) && !/^https?:/i.test(value) && !FLAG.test(value.trim())) {
       const named = meaningful(splitName(value.split(/[/\\]/).pop() ?? '').base);
       if (named) return named;
     }

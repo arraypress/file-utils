@@ -5,7 +5,12 @@ All notable changes to `@arraypress/file-utils` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.1] — Unreleased
+## [1.5.0] — Unreleased
+
+### Added
+
+- `sanitize`'s `maxBytes` option: the longest name in UTF-8 bytes, which is what Linux and APFS count (255). `finishName` and `pageName` use it (240): 120 Chinese or Japanese characters are 360 bytes.
+- `isReservedName(name)`: whether Windows keeps a name for a device. `namesSite(text, site)`: whether text names a site as a word of its own.
 
 ### Fixed
 
@@ -13,6 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `extensionFromMime` knows the Office and OpenDocument types (docx, xlsx, pptx, xls, ppt, odt, ods, odp) and the aliases servers send (`application/x-zip-compressed`, `audio/mp3`, `image/jpg`, `audio/x-wav`, `image/vnd.microsoft.icon`, `application/vnd.rar`, `text/xml`…), and reads a type in any case, with or without parameters: a Word document with no extension got none.
 - `sanitize` drops what can't be seen or turns the text round (bidirectional overrides and isolates, zero-width spaces, the soft hyphen, the byte-order mark), so “invoice‮fdp.exe” no longer displays as “invoiceexe.pdf”; the zero-width joiners Persian, Indic words and emoji are spelt with stay. `renameKeepingExtension` drops the isolates (U+2066–U+2069) and the Arabic letter mark too.
 - `splitName` takes extensions up to 14 characters (“.unitypackage”, “.webmanifest”).
+- `isMeaningless`: a long word in a script without Latin vowels (“Бухгалтерия”, “東京都知事選挙の結果について”, Greek, Arabic, Hebrew, Korean) was taken for a random token, so the file was renamed from the page.
+- `fromLinkText`: a file type in the middle of the words is part of the name (“The CSV format explained” was “The”, “Zip codes list” nothing): the note about the file is in brackets or the last word. Only “download” comes off on its own; “open”, “view”, “get”, “save”, “export” and “print” also start names (“Open University prospectus”, “Export controls policy”) and come off only before an article, after “click here to” or before a colon.
+- `fromTitle`, `withSite`, `pageName`: the site's name is matched as a word, so “After the crash | Financial Times” on ft.com keeps its headline and ea.com no longer drops “Create an account”.
+- `fromQuery`: a switch is no file name (`?download=true` named the file “true.pdf”; `attachment=yes`, `file=inline`).
+- `siteName` knows `.ne.jp`, `.or.jp`, `.go.kr`, `.gob.mx`, `.govt.nz` and the like.
+- `cleanName`: only an image's name has a size mark, and a size has a side of three digits (“iphone-12x.jpg”, “covid-19x19.jpg”, “photo-16x9.jpg” and “mix_128x.mp3” keep their names); “copy” after a word that makes it part of the name stays (“Hard copy.pdf”, “Certified copy 2.pdf”); one plus between short words is a plus (“Q+A.pdf”, “AT+T_bill.pdf”).
+- `sanitize`: a name is cut by characters, not UTF-16 units (an emoji was cut in two); the extension is kept as written (it was lowercased); an extension longer than the limit no longer makes the name longer than it was; a cut leaves no trailing space or dot and no reserved name; the `replacement` is taken as written (`'d'` collapsed every run of digits); COM¹–COM³, LPT¹–LPT³, CONIN$, CONOUT$, CLOCK$ and “CON .txt” are reserved too.
+- `pageName`: a title with no space to cut at (Chinese, Japanese, one long word) is cut at the limit instead of dropped; a name Windows keeps for a device gets a “_” (“con.com” was the folder “Con”).
+- `humanize` capitalises the first letter of each word in any script (“résumé” was “RéSumé”, “don't” “Don'T”).
+- `formatSize`: 1,048,575 bytes are “1.0 MB”, not “1024.0 KB”; a size that is no number is `''` (was “NaN B”). `wholeUnits` is unchanged: it is the PHP's output, digit for digit.
+
+### Changed
+
+- `fromLinkText('View from the summit')` is now the whole phrase, and `decodeName('A+B')` stays “A+B”.
 
 ## [1.4.0] — 2026-11-11
 

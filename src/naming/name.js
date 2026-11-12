@@ -8,15 +8,18 @@
  * @module @arraypress/file-utils/naming/name
  */
 
-import { sanitize } from '../name.js';
+import { isReservedName, sanitize } from '../name.js';
 import { cleanName, tidySpacing } from './clean.js';
-import { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName } from './context.js';
+import { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, namesSite, siteName } from './context.js';
 import { extensionFor } from './extension.js';
 import { isMeaningless } from './meaning.js';
 import { baseName, joinName, splitName } from './split.js';
 
-/** Longest name given, extension included: well inside every file system's 255 bytes, and readable. */
+/** Longest name given, extension included: readable, and well inside what every file system takes. */
 export const MAX_NAME_LENGTH = 120;
+
+/** Largest name given, in UTF-8 bytes: Linux and APFS take 255 (120 Chinese or Japanese characters are 360). */
+const MAX_NAME_BYTES = 240;
 
 /**
  * What's known about a download when it's named (Chrome's `DownloadItem`,
@@ -71,8 +74,8 @@ export function hostOf(url) {
 /**
  * Make a base name and extension into a finished file name: the extension
  * right for the type, characters no file system takes replaced, Windows'
- * reserved names avoided, at most {@link MAX_NAME_LENGTH} characters with
- * the extension kept (@arraypress/file-utils `sanitize`).
+ * reserved names avoided, at most {@link MAX_NAME_LENGTH} characters (and
+ * 240 bytes) with the extension kept (@arraypress/file-utils `sanitize`).
  *
  * @param {string} base - The name, without an extension.
  * @param {string} ext - The extension it had ('' for none).
@@ -88,7 +91,7 @@ export function finishName(base, ext, mime) {
   // eslint-disable-next-line no-control-regex -- control characters are what's being replaced
   const readable = base.replace(/\s*:\s+/g, ' - ').replace(/[/\\]/g, '-').replace(/[?*"<>|\x00-\x1f\x7f]/g, ' ');
   const name = joinName(tidySpacing(readable) || 'download', extensionFor(ext, mime));
-  return sanitize(name, { maxLength: MAX_NAME_LENGTH, fallback: joinName('download', extensionFor(ext, mime)) });
+  return sanitize(name, { maxLength: MAX_NAME_LENGTH, maxBytes: MAX_NAME_BYTES, fallback: joinName('download', extensionFor(ext, mime)) });
 }
 
 /**
@@ -144,7 +147,7 @@ function contextName(facts, site) {
 export function withSite(name, host) {
   if (!name) return null;
   const site = siteName(host);
-  return site && !name.toLowerCase().includes(site.toLowerCase()) ? `${site} ${name}` : name;
+  return site && !namesSite(name, site) ? `${site} ${name}` : name;
 }
 
 /** Longest page name {@link pageName} gives by default: room for more after it (a date, a file's own name). */
@@ -173,7 +176,10 @@ export function pageName(page, options = {}) {
   // A title that is only the site's name keeps its own spelling (“GitHub”, not “Github”).
   const named = withSite(fromTitle(title, host), host) || (title.toLowerCase() === site.toLowerCase() ? title : site) || title;
   const readable = (named || host.replace(/:\d+$/, '')).replace(/\s*:\s*/g, ' - ').replace(/[/\\]/g, '-');
-  // A long name is cut between words.
-  const cut = readable.length > maxLength ? readable.slice(0, maxLength + 1).replace(/\s+\S*$/, '') : readable;
-  return sanitize(cut.trim(), { fallback, maxLength, replacement: ' ' }).replace(/\s+/g, ' ').trim() || fallback;
+  // A long name is cut between words, when most of it is left: Chinese and Japanese titles have no spaces to cut at.
+  const words = readable.slice(0, maxLength + 1).replace(/\s+\S*$/, '');
+  const cut = readable.length <= maxLength || words.length < maxLength / 2 ? readable : words;
+  const safe = sanitize(cut.trim(), { fallback, maxLength, maxBytes: MAX_NAME_BYTES, replacement: ' ' }).replace(/\s+/g, ' ').trim() || fallback;
+  // Windows keeps “Con”, “Aux” and “Nul” (con.com, aux.io) for devices: no folder can have the name.
+  return isReservedName(safe) ? `_${safe}` : safe;
 }

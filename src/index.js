@@ -38,6 +38,7 @@ export {
 	replaceExtension,
 	renameKeepingExtension,
 	humanize,
+	isReservedName,
 } from './name.js';
 
 /* Naming — a useful name for a file from the web: tidied, judged, named
@@ -56,6 +57,7 @@ export {
 	isDeviceName,
 	isMeaningless,
 	siteName,
+	namesSite,
 	fromLabel,
 	fromLinkText,
 	fromTitle,

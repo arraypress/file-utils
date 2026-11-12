@@ -72,6 +72,8 @@ export function isMeaningless(base: string): boolean;
 
 /** A site's name as people write it, from its host ("billing.acme.co.uk" → "Acme"). */
 export function siteName(host: string): string;
+/** Whether text names a site: its name as a word of its own (“Acme Billing” names acme.com). */
+export function namesSite(text: string, site: string): boolean;
 /** A name from what a page says a file is (alt text, a caption), as it is, or null. */
 export function fromLabel(text: string | undefined): string | null;
 /** A name from a link's text, its verb and note about the file taken off, or null. */

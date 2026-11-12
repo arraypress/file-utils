@@ -28,7 +28,65 @@ const HIDDEN = /[\u00ad\u061c\u180e\u200b\u200e\u200f\u202a-\u202e\u2060-\u206f\
 /**
  * Windows reserved device names (case-insensitive).
  */
-const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
+const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9¹²³]|LPT[0-9¹²³]|CONIN\$|CONOUT\$|CLOCK\$)\s*(\.|$)/i;
+
+/**
+ * Whether Windows keeps a name for a device: CON, PRN, AUX, NUL, COM0–COM9,
+ * LPT0–LPT9 (and their superscript digits), CONIN$, CONOUT$ and CLOCK$, in
+ * any case, alone or before an extension (`NUL.txt`, `con .tar.gz`).
+ * Nothing can be saved under one, as a file or a folder.
+ *
+ * @param {string} name - A file or folder name.
+ * @returns {boolean} True for a reserved name.
+ *
+ * @example
+ * isReservedName('CON')      // true
+ * isReservedName('aux.txt')  // true
+ * isReservedName('Console')  // false
+ */
+export function isReservedName(name) {
+  return typeof name === 'string' && RESERVED.test(name);
+}
+
+/**
+ * The start of text that fits a length and a size, never cutting a character
+ * in two (an emoji is two UTF-16 units and four bytes).
+ *
+ * @param {string} text - Any text.
+ * @param {number} maxLength - Most UTF-16 units.
+ * @param {number} maxBytes - Most UTF-8 bytes.
+ * @returns {string} The start that fits.
+ */
+function fitting(text, maxLength, maxBytes) {
+  let out = '';
+  let bytes = 0;
+  for (const character of text) {
+    const point = character.codePointAt(0) ?? 0;
+    bytes += point < 0x80 ? 1 : point < 0x800 ? 2 : point < 0x10000 ? 3 : 4;
+    if (out.length + character.length > maxLength || bytes > maxBytes) break;
+    out += character;
+  }
+  return out;
+}
+
+/**
+ * A name cut to a length and a size with its extension kept as written,
+ * when there is room for it and one character before it.
+ *
+ * @param {string} name - A file name.
+ * @param {number} maxLength - Most UTF-16 units.
+ * @param {number} maxBytes - Most UTF-8 bytes.
+ * @returns {string} The name, cut if it was too long.
+ */
+function truncated(name, maxLength, maxBytes) {
+  if (fitting(name, maxLength, maxBytes) === name) return name;
+  const dot = name.lastIndexOf('.');
+  const suffix = dot > 0 ? name.slice(dot) : '';
+  const room = maxLength - suffix.length;
+  const roomBytes = maxBytes - new TextEncoder().encode(suffix).length;
+  if (!suffix || room < 1 || roomBytes < 1) return fitting(name, maxLength, maxBytes).replace(/[\s.]+$/, '');
+  return fitting(name.slice(0, dot), room, roomBytes).replace(/[\s.]+$/, '') + suffix;
+}
 
 /**
  * Sanitize a filename for safe storage and HTTP headers.
@@ -42,7 +100,8 @@ const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
  * @param {string} filename - The raw filename to sanitize.
  * @param {Object} [options] - Options.
  * @param {string} [options.fallback='file'] - Fallback name if result is empty.
- * @param {number} [options.maxLength=255] - Max filename length.
+ * @param {number} [options.maxLength=255] - Max filename length, in UTF-16 units (what Windows and macOS count).
+ * @param {number} [options.maxBytes] - Max filename size in UTF-8 bytes (what Linux and APFS count: 255). Default: no limit.
  * @param {string} [options.replacement='_'] - Character to replace unsafe chars with.
  * @returns {string} Safe filename.
  *
@@ -54,9 +113,10 @@ const RESERVED = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)/i;
  * sanitize('')                              // 'file'
  * sanitize('CON.txt')                       // '_CON.txt'
  * sanitize('a'.repeat(300) + '.pdf')        // truncated to 255 chars
+ * sanitize('漢'.repeat(200) + '.pdf', { maxBytes: 255 }) // 83 characters and '.pdf': 253 bytes
  */
 export function sanitize(filename, options = {}) {
-  const { fallback = 'file', maxLength = 255, replacement = '_' } = options;
+  const { fallback = 'file', maxLength = 255, maxBytes = Infinity, replacement = '_' } = options;
 
   if (!filename || typeof filename !== 'string') return fallback;
 
@@ -68,21 +128,13 @@ export function sanitize(filename, options = {}) {
     // Drop what can't be seen or turns the text round (“invoice\u202Efdp.exe” shows as “invoiceexe.pdf”)
     .replace(HIDDEN, '')
     // Collapse multiple replacements
-    .replace(new RegExp(`\\${replacement}{2,}`, 'g'), replacement)
+    .replace(replacement ? new RegExp(`(?:${replacement.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}){2,}`, 'g') : /(?:)/, replacement)
     // Remove leading/trailing dots and spaces (Windows issues)
     .replace(/^[\s.]+|[\s.]+$/g, '');
 
-  // Block Windows reserved names
-  if (RESERVED.test(safe)) {
-    safe = replacement + safe;
-  }
-
-  // Truncate preserving extension
-  if (safe.length > maxLength) {
-    const ext = extensionFromName(safe);
-    const maxBase = maxLength - (ext ? ext.length + 1 : 0);
-    safe = safe.slice(0, maxBase) + (ext ? '.' + ext : '');
-  }
+  // Truncate preserving the extension, then block Windows reserved names (a cut can leave one: “CON….txt”)
+  safe = truncated(safe, maxLength, maxBytes);
+  if (RESERVED.test(safe)) safe = truncated((replacement.trim() || '_') + safe, maxLength, maxBytes);
 
   return safe || fallback;
 }
@@ -250,5 +302,5 @@ export function humanize(filename) {
     .replace(/[-_.]+/g, ' ')           // replace separators with spaces
     .replace(/\s+/g, ' ')             // collapse whitespace
     .trim()
-    .replace(/\b\w/g, c => c.toUpperCase()); // title case
+    .replace(/(?<![\p{L}\p{N}'’])\p{L}/gu, c => c.toUpperCase()); // title case, in any script
 }

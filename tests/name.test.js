@@ -112,5 +112,10 @@ describe('humanize', () => {
   it('already nice', () => assert.equal(humanize('Report.pdf'), 'Report'));
   it('empty string', () => assert.equal(humanize(''), ''));
   it('null', () => assert.equal(humanize(null), ''));
-  it('unicode', () => assert.equal(humanize('résumé-final.pdf'), 'RéSumé Final'));
+  it('unicode', () => assert.equal(humanize('résumé-final.pdf'), 'Résumé Final'));
+  it('capitals after a mark, not inside a word', () => {
+    assert.equal(humanize('über_cool.png'), 'Über Cool');
+    assert.equal(humanize('don’t-stop.mp3'), 'Don’t Stop');
+    assert.equal(humanize('ελληνικά_αρχείο.txt'), 'Ελληνικά Αρχείο');
+  });
 });

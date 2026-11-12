@@ -44,7 +44,8 @@ export function isDeviceName(base) {
 
 /**
  * Whether a single word is a random token: long, letters mixed with digits
- * or cases, without the vowels words have (ids, hashes, base64).
+ * or cases, or Latin letters without the vowels words have (ids, hashes,
+ * base64). A word in another script is never one for want of vowels.
  *
  * @param {string} word - One word.
  * @returns {boolean} True for a token.
@@ -52,12 +53,14 @@ export function isDeviceName(base) {
 function isToken(word) {
   if (word.length < 10) return false;
   const letters = word.match(/\p{L}/gu) ?? [];
-  const vowels = letters.filter((letter) => /[aeiouy]/i.test(letter)).length;
+  // Vowels are counted in Latin letters only (accents aside): a Russian, Greek, Arabic or Japanese word has none and is no token.
+  const latin = letters.filter((letter) => /\p{Script=Latin}/u.test(letter));
+  const vowels = latin.filter((letter) => /[aeiouy]/i.test(letter.normalize('NFD'))).length;
   const caseChanges = (word.match(/[a-z][A-Z]/g) ?? []).length;
   // Letters and digits taking turns ("aGVsbG8gd29y"), not a word with a number ("report2025q3").
   const turns = (word.match(/\p{L}(?=\d)|\d(?=\p{L})/gu) ?? []).length;
   if (/^[0-9a-f]+$/i.test(word) && /\d/.test(word) && /[a-f]/i.test(word)) return true;
-  return turns >= 4 || caseChanges >= 3 || (letters.length > 0 && vowels / letters.length < 0.12);
+  return turns >= 4 || caseChanges >= 3 || (latin.length > 0 && latin.length === letters.length && vowels / latin.length < 0.12);
 }
 
 /**

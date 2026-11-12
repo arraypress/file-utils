@@ -1,14 +1,19 @@
 export interface SanitizeOptions {
   /** Fallback name if result is empty. Default: 'file'. */
   fallback?: string;
-  /** Max filename length. Default: 255. */
+  /** Max filename length, in UTF-16 units. Default: 255. */
   maxLength?: number;
+  /** Max filename size in UTF-8 bytes (Linux and APFS take 255). Default: no limit. */
+  maxBytes?: number;
   /** Replacement character for unsafe chars. Default: '_'. */
   replacement?: string;
 }
 
 /** Sanitize a filename for safe storage and HTTP headers. */
 export function sanitize(filename: string, options?: SanitizeOptions): string;
+
+/** Whether Windows keeps a name for a device (CON, NUL, COM1…), alone or before an extension. */
+export function isReservedName(name: string): boolean;
 
 /** Build a safe Content-Disposition header value with RFC 5987 support. */
 export function contentDisposition(filename: string, disposition?: 'attachment' | 'inline'): string;

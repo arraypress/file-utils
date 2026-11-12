@@ -7,7 +7,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitize } from '../src/name.js';
+import { formatSize, isReservedName, namesSite, sanitize } from '../src/index.js';
 import {
   cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
   isDeviceName, isMeaningless, MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, withSite, baseName, joinName, splitName,
@@ -137,7 +137,9 @@ describe('clean', () => {
     assert.equal(decodeName('Q3%2520report'), 'Q3 report');
     assert.equal(decodeName('Q3+report+final'), 'Q3 report final');
     assert.equal(decodeName('C++ Primer'), 'C++ Primer');
-    assert.equal(decodeName('A+B'), 'A B');
+    assert.equal(decodeName('Annual+Report'), 'Annual Report');
+    // One plus between short words is a plus.
+    for (const name of ['A+B', 'Q+A', 'AT+T_bill', 'R+D']) assert.equal(decodeName(name), name);
     assert.equal(decodeName('100%'), '100%');
     assert.equal(decodeName('50%off%zz'), '50%off%zz');
     assert.equal(decodeName('caf%C3%A9'), 'café');
@@ -162,6 +164,10 @@ describe('clean', () => {
     assert.equal(stripCopyMarks('(1)'), '(1)');
     assert.equal(stripCopyMarks('Copy'), 'Copy');
     assert.equal(stripCopyMarks('Photocopy'), 'Photocopy');
+    // “copy” after a word that makes it part of the name.
+    for (const name of ['Hard copy', 'Carbon Copy', 'Certified copy 2', 'Passport - signed copy', 'final_copy', 'My copy']) assert.equal(stripCopyMarks(name), name);
+    assert.equal(stripCopyMarks('Hard copy (1)'), 'Hard copy');
+    assert.equal(stripCopyMarks('Hard copy copy'), 'Hard copy');
   });
 
   it('a name that tidies to nothing stays as it was', () => {
@@ -385,7 +391,7 @@ describe('names from image hosts and pages (1.3.0)', () => {
 describe('what a page says a file is (1.3.0)', () => {
   it('a label is used as it is, ahead of the link’s text; a link’s verb comes off, a label’s doesn’t', () => {
     assert.equal(fromLabel('View from the summit'), 'View from the summit');
-    assert.equal(fromLinkText('View from the summit'), 'from the summit');
+    assert.equal(fromLinkText('View the summit photo'), 'summit photo');
     assert.equal(fromLabel('image'), null);
     assert.equal(fromLabel(undefined), null);
     assert.equal(ruleName({ filename: '8f3a9c2e41b7.jpg', label: 'View from the summit', linkText: 'Download' }, { site: false }).name, 'View from the summit.jpg');
@@ -416,6 +422,155 @@ describe('size marks and inner extensions (1.3.0)', () => {
     assert.equal(cleanName('64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp'), '64547710-dd08-11f1-97df-bd0937690c4d.webp');
     assert.equal(cleanName('report.pdf.zip'), 'report.pdf.zip');
     assert.equal(ruleName({ filename: '64547710-dd08-11f1-97df-bd0937690c4d.jpg.webp', label: 'Floods in the north' }, { site: false }).name, 'Floods in the north.webp');
+  });
+});
+
+describe('names from real pages and links (1.5.0)', () => {
+  it('a file type in the middle of a link’s words is part of the name', () => {
+    /** @type {[string, string | null][]} */
+    const cases = [
+      ['The CSV format explained', 'The CSV format explained'],
+      ['How to read a CSV file in Python', 'How to read a CSV file in Python'],
+      ['Our PDF guide to pensions', 'Our PDF guide to pensions'],
+      ['Doc Martin episode guide', 'Doc Martin episode guide'],
+      ['Zip codes list', 'Zip codes list'],
+      ['PNG vs JPG comparison chart', 'PNG vs JPG comparison chart'],
+      ['Annual Report (PDF, 2.4 MB)', 'Annual Report'],
+      ['Summer mix mp3', 'Summer mix'],
+      ['Price list PDF 312 KB', 'Price list'],
+      ['Price list - PDF', 'Price list'],
+      ['Slides [PPTX]', 'Slides'],
+      ['Lease agreement (312 KB)', 'Lease agreement'],
+      ['MP3', null],
+    ];
+    for (const [text, want] of cases) assert.equal(fromLinkText(text), want, text);
+  });
+
+  it('a verb that starts a name stays; a link’s verb goes', () => {
+    /** @type {[string, string | null][]} */
+    const cases = [
+      ['Open University prospectus', 'Open University prospectus'],
+      ['Export controls policy', 'Export controls policy'],
+      ['Get Out (2017)', 'Get Out (2017)'],
+      ['Print Shop Pro manual', 'Print Shop Pro manual'],
+      ['View from the summit', 'View from the summit'],
+      ['Download the Open Source Guide', 'Open Source Guide'],
+      ['Download Open Source Guide', 'Open Source Guide'],
+      ['View the seating plan', 'seating plan'],
+      ['Open: seating plan', 'seating plan'],
+      ['Click here to view seating plan', 'seating plan'],
+      ['Get your boarding pass', 'boarding pass'],
+    ];
+    for (const [text, want] of cases) assert.equal(fromLinkText(text), want, text);
+  });
+
+  it('a site’s name is a word of the title, not letters inside one', () => {
+    assert.equal(fromTitle('After the crash: what’s left | Financial Times', 'www.ft.com'), 'After the crash: what’s left – Financial Times');
+    assert.equal(pageName({ url: 'https://www.ea.com/x', title: 'Create an account – Electronic Arts' }), 'Ea Create an account – Electronic Arts');
+    assert.equal(fromTitle('Shipping label – HP Support', 'support.hp.com'), 'Shipping label');
+    assert.equal(withSite('Tax explained', 'x.com'), 'X Tax explained');
+    assert.equal(withSite('Acme invoice', 'acme.com'), 'Acme invoice');
+    assert.equal(namesSite('C++ primer', 'c++'), true);
+    assert.equal(siteName('www.example.ne.jp'), 'Example');
+    assert.equal(siteName('shop.example.go.kr'), 'Example');
+  });
+
+  it('a switch in the query is no file name', () => {
+    for (const query of ['download=true', 'download=1', 'attachment=yes', 'file=inline', 'name=false']) {
+      assert.equal(fromQuery(`https://x.example/a?${query}`), null, query);
+    }
+    assert.equal(ruleName({ filename: 'download.pdf', mime: 'application/pdf', url: 'https://x.example/a?download=true' }).name, 'download.pdf');
+    assert.equal(fromQuery('https://x.example/a?download=Q3%20report.pdf'), 'Q3 report');
+  });
+
+  it('only an image’s name has a size in it, and a size has a side of three digits', () => {
+    /** @type {[string, string][]} */
+    const cases = [
+      ['iphone-12x.jpg', 'iphone-12x.jpg'], ['covid-19x19.jpg', 'covid-19x19.jpg'], ['photo-16x9.jpg', 'photo-16x9.jpg'],
+      ['iphone_15x.jpg', 'iphone_15x.jpg'], ['mix_128x.mp3', 'mix_128x.mp3'], ['plan-300x250.pdf', 'plan-300x250.pdf'],
+      ['banner-300x250.png', 'banner.png'], ['lake-1024x683.jpg', 'lake.jpg'], ['hero_600x.webp', 'hero.webp'],
+      ['avatar_400x400.jpg', 'avatar.jpg'], ['thumb-150x150.jpg', 'thumb.jpg'], ['wide-1920x80.png', 'wide.png'],
+    ];
+    for (const [name, want] of cases) assert.equal(cleanName(name), want, name);
+  });
+
+  it('“copy” that is part of the name stays in a whole name', () => {
+    assert.equal(cleanName('Hard copy.pdf'), 'Hard copy.pdf');
+    assert.equal(cleanName('Report copy 2.pdf'), 'Report.pdf');
+  });
+});
+
+describe('names in other scripts say something (1.5.0)', () => {
+  it('a long word without Latin vowels is a word, not a token', () => {
+    for (const name of ['Бухгалтерия', 'Квартальный отчёт 2026', 'Απολογισμός', 'تقرير_المبيعات_السنوي', 'דוחכספישנתי2026', '東京都知事選挙の結果について', '분기별매출보고서최종본', 'Größenänderung', 'Rhythms']) {
+      assert.equal(isMeaningless(name), false, name);
+    }
+    for (const name of ['xkcdqrstvwz', 'bcdfghjklmnp', 'a7f3e9c2b1d4', 'aGVsbG8gd29ybGQ']) assert.equal(isMeaningless(name), true, name);
+    assert.equal(ruleName({ filename: 'Бухгалтерия.pdf', pageTitle: 'Other', referrer: 'https://example.com/' }).name, 'Бухгалтерия.pdf');
+  });
+});
+
+describe('names fit every file system (1.5.0)', () => {
+  it('a cut keeps characters whole and the extension as written', () => {
+    const emoji = sanitize(`${'😀'.repeat(10)}.png`, { maxLength: 9 });
+    assert.equal(emoji, '😀😀.png');
+    assert.equal(sanitize(`${'x'.repeat(300)}.PDF`).slice(-5), 'x.PDF');
+    assert.equal(sanitize(`${'x'.repeat(300)}.PDF`).length, 255);
+    assert.equal(finishName(`a${'😀'.repeat(150)}`, 'pdf', 'application/pdf').isWellFormed(), true);
+  });
+
+  it('an extension too long to keep is cut with the rest: a name never grows', () => {
+    assert.equal(sanitize('abcdefgh.verylongext', { maxLength: 5 }), 'abcde');
+    assert.equal(sanitize(`a.${'b'.repeat(300)}`).length, 255);
+  });
+
+  it('a cut leaves no space or dot at the end, and no reserved name', () => {
+    assert.equal(sanitize('abc def ghi.txt', { maxLength: 8 }), 'abc.txt');
+    assert.equal(sanitize(`${'a'.repeat(254)} b`), 'a'.repeat(254));
+    assert.equal(sanitize(`CON${'x'.repeat(10)}.txt`, { maxLength: 7 }), '_CO.txt');
+  });
+
+  it('names are counted in bytes too: 255 on Linux and APFS', () => {
+    const bytes = (/** @type {string} */ text) => new TextEncoder().encode(text).length;
+    const kanji = finishName('漢'.repeat(150), 'pdf', 'application/pdf');
+    assert.ok(bytes(kanji) <= 240, String(bytes(kanji)));
+    assert.ok(kanji.endsWith('漢.pdf'));
+    assert.equal(sanitize(`${'漢'.repeat(200)}.pdf`, { maxBytes: 255 }), `${'漢'.repeat(83)}.pdf`);
+    assert.equal(sanitize(`${'漢'.repeat(200)}.pdf`).length, 204);
+    const title = '東京都知事選挙の結果について専門家が解説する最新ニュースまとめ速報と今後の見通しについての詳細な分析記事を掲載しています今日のトップニュース一覧と解説まとめ';
+    const page = pageName({ url: 'https://news.example.jp/a', title });
+    assert.ok(page.startsWith('Example 東京都知事選挙'), page);
+    assert.ok(bytes(page) <= 240 && page.length <= MAX_PAGE_NAME_LENGTH);
+    const word = 'Donaudampfschifffahrtsgesellschaftskapitänsmützenabzeichen-Rindfleischetikettierungsüberwachungsaufgabenübertragungsgesetz';
+    assert.equal(pageName({ url: 'https://example.com/', title: word }), `Example ${word.slice(0, 72)}`);
+  });
+
+  it('every name Windows keeps for a device is avoided, in a file and in a page’s folder', () => {
+    for (const name of ['CON', 'con.txt', 'COM¹.txt', 'LPT³', 'CONIN$', 'CONOUT$.log', 'CLOCK$', 'CON .txt', 'nul.tar.gz']) {
+      assert.equal(sanitize(name), `_${name}`, name);
+      assert.equal(isReservedName(name), true, name);
+    }
+    for (const name of ['Console.txt', 'COM10.txt', 'CONtract.pdf', 'aux-in.wav']) assert.equal(sanitize(name), name, name);
+    assert.equal(pageName({ url: 'https://con.com/', title: '' }), '_Con');
+    assert.equal(pageName({ url: 'https://www.nul.co.uk/', title: '' }), '_Nul');
+    assert.equal(pageName({ url: 'http://localhost/', title: 'AUX' }), '_AUX');
+    assert.equal(pageName({ url: 'https://aux.io/', title: 'Home' }), 'Aux Home');
+  });
+
+  it('the replacement is taken as it is written, not as a pattern', () => {
+    assert.equal(sanitize('track 2024?.mp3', { replacement: 'd' }), 'track 2024d.mp3');
+    assert.equal(sanitize('a??b::c', { replacement: '-' }), 'a-b-c');
+    assert.equal(sanitize('a??b', { replacement: '.' }), 'a.b');
+    assert.equal(sanitize('a??b', { replacement: '' }), 'ab');
+  });
+
+  it('a size that rounds up to the next unit is written in it; a size that is no number is nothing', () => {
+    assert.equal(formatSize(1048575), '1.0 MB');
+    assert.equal(formatSize(1024 * 1023.96), '1.0 MB');
+    assert.equal(formatSize(1048575, { locale: 'de' }), '1,0 MB');
+    assert.equal(formatSize(1024 * 1023.9), '1023.9 KB');
+    assert.equal(formatSize(NaN), '');
+    assert.equal(formatSize(Infinity), '');
   });
 });
 

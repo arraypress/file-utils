@@ -75,9 +75,12 @@ formatSize(1536, { decimals: 2, locale: 'pt-BR' });         // '1,50 kB'
 
 **`sanitize(filename, options?)`** — makes a filename safe for storage and HTTP headers. Strips
 directory components, control characters and platform-unsafe characters; blocks Windows reserved
-device names; truncates while preserving the extension.
+device names (`isReservedName(name)`: CON, NUL, COM1, COM¹, CONIN$…, alone or before an extension);
+drops invisible and direction-changing characters (bidirectional overrides, zero-width spaces);
+truncates while preserving the extension as written, never cutting a character in two.
 
-Options: `fallback` (default `'file'`), `maxLength` (default `255`), `replacement` (default `'_'`).
+Options: `fallback` (default `'file'`), `maxLength` (default `255`, in UTF-16 units), `maxBytes`
+(UTF-8 bytes, what Linux and APFS count; default no limit), `replacement` (default `'_'`).
 
 ```js
 sanitize('report.pdf');            // 'report.pdf'
@@ -176,7 +179,7 @@ The pieces, each pure: `splitName` / `joinName` / `baseName` (`tar.gz` kept toge
 2.0” has no extension), `decodeName`, `stripTracking`, `stripCopyMarks`, `stripSizeMarks` (“1280px-”, “-1024x683”, “_600x”), `tidySpacing`,
 `cleanName`, `isMeaningless` (generic words, numbers, hashes, base64, a generic word beside an id),
 `isDeviceName` (“IMG_2384”, “PXL_…”, “Screenshot …”: never meaningless), `siteName` (“Acme” from
-billing.acme.co.uk), `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`,
+billing.acme.co.uk), `namesSite(text, site)` (the site's name as a word of its own), `fromLabel`, `fromLinkText`, `fromTitle`, `fromQuery`, `fromPath`, `withSite`, `hostOf`,
 `extensionFor(ext, mime)` (a real extension is always kept: “main.c” sent as text/plain,
 “deck.key” as application/zip and “song.m4a” as video/mp4 are still themselves; the type's usual
 one only when there is none, or it is the server script's that sent the file, “download.php”;

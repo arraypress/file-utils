@@ -7,6 +7,7 @@
  * @module @arraypress/file-utils/naming/clean
  */
 
+import { getCategoryFromName } from '../type.js';
 import { joinName, splitName } from './split.js';
 
 /**
@@ -16,8 +17,15 @@ import { joinName, splitName } from './split.js';
  */
 const TRACKING = /(?:^|[?&_#;])(?:utm_[a-z]+|fbclid|gclid|gbraid|wbraid|dclid|msclkid|yclid|mc_cid|mc_eid|_hsenc|_hsmi|hsCtaTracking|igshid|igsh|mkt_tok|oly_enc_id|oly_anon_id|vero_id|ref_src|trk|si)=[^&_#;.]*/gi;
 
-/** Copy marks at the end of a name: “ (1)” to “ (99)”, “ - Copy”, “ - Copy (2)”, “ copy”, “ copy 3”. */
-const COPY_MARK = /(?:\s*\(\d{1,2}\)|\s+-\s+copy(?:\s*\(\d{1,2}\))?|\s+copy(?:\s+\d{1,2})?)$/i;
+/** Words that make “copy” part of a name, not a mark: “Hard copy”, “Certified copy”, “Master copy”. */
+const COPY_OF = 'hard|soft|carbon|master|final|fair|clean|proof|review|advance|file|office|certified|true|signed|customer|client|digital|paper|print|printed|backup|working|draft|rough|spare|second|extra|personal|patient|employee|student|your|my|our|a|the';
+
+/**
+ * Copy marks at the end of a name: “ (1)” to “ (99)”, “ - Copy”, “ - Copy
+ * (2)”, “ copy”, “ copy 3”. A “copy” that a word before it makes part of
+ * the name stays (“Hard copy”, “Certified copy 2”).
+ */
+const COPY_MARK = new RegExp(`(?:\\s*\\(\\d{1,2}\\)|\\s+-\\s+copy(?:\\s*\\(\\d{1,2}\\))?|(?<!(?:^|[\\s_.-])(?:${COPY_OF}))\\s+copy(?:\\s+\\d{1,2})?)$`, 'i');
 
 /**
  * Decode web-address encoding in a name, once or twice (`%2520` is a space
@@ -30,6 +38,7 @@ const COPY_MARK = /(?:\s*\(\d{1,2}\)|\s+-\s+copy(?:\s*\(\d{1,2}\))?|\s+copy(?:\s
  * decodeName('Annual+Report+2025');      // 'Annual Report 2025'
  * decodeName('C++ Primer');              // 'C++ Primer'
  * decodeName('100%');                    // '100%'
+ * decodeName('Q+A');                     // 'Q+A'
  */
 export function decodeName(text) {
   let decoded = text;
@@ -40,8 +49,11 @@ export function decodeName(text) {
       break;
     }
   }
-  // A + between two words is a space from a form or query; “C++” and “A+B” with spaces around stay.
-  if (!/\s/.test(decoded)) decoded = decoded.replace(/(?<=[\p{L}\p{N}])\+(?=[\p{L}\p{N}])/gu, ' ');
+  // A + between words is a space from a form or query. One alone between short words is a plus (“Q+A”, “AT+T”,
+  // “R+D”), and so is any in a name with spaces (“C++ Primer”, “A + B”).
+  const pluses = decoded.match(/(?<=[\p{L}\p{N}])\+(?=[\p{L}\p{N}])/gu)?.length ?? 0;
+  const spaced = pluses > 1 || /[\p{L}\p{N}]{3,}\+[\p{L}\p{N}]{3,}/u.test(decoded);
+  if (spaced && !/\s/.test(decoded)) decoded = decoded.replace(/(?<=[\p{L}\p{N}])\+(?=[\p{L}\p{N}])/gu, ' ');
   return decoded;
 }
 
@@ -81,8 +93,12 @@ export function stripCopyMarks(base) {
   return stripped;
 }
 
-/** Size marks image servers add: MediaWiki's “1280px-” in front, WordPress' “-1024x683”, Shopify's “_600x”, X's “_400x400”. */
-const SIZE_MARKS = [/^\d{2,4}px-(?=.*\p{L})/u, /[-_]\d{2,4}x\d{0,4}$/];
+/**
+ * Size marks image servers add: MediaWiki's “1280px-” in front, WordPress'
+ * “-1024x683”, Shopify's “_600x”, X's “_400x400”. A size has a side of
+ * three digits or more: “iphone-12x”, “photo-16x9” and “covid-19x19” are names.
+ */
+const SIZE_MARKS = [/^\d{2,4}px-(?=.*\p{L})/u, /-(?:\d{3,4}x\d{2,4}|\d{2}x\d{3,4})$|_\d{3,4}x(?:\d{2,4})?$/];
 
 /** Image extensions a server leaves inside a name when it sends another format (“photo.jpg.webp”). */
 const INNER_IMAGE_EXTENSION = /\.(?:jpe?g|png|gif|webp|avif)$/i;
@@ -123,8 +139,8 @@ export function tidySpacing(text) {
 
 /**
  * Every rule here, in order, on a whole file name: decoded, tracking out,
- * copy marks and image servers' size marks dropped, an image extension left
- * inside the name dropped (“photo.jpg.webp”), spacing tidied. The extension
+ * copy marks dropped, an image's size marks and an image extension left
+ * inside its name dropped (“photo.jpg.webp”), spacing tidied. The extension
  * is kept as written.
  *
  * @param {string} name - The name Chrome would use.
@@ -139,6 +155,9 @@ export function tidySpacing(text) {
 export function cleanName(name) {
   const { base, ext } = splitName(stripTracking(decodeName(name)));
   const inner = INNER_IMAGE_EXTENSION.test(ext ? `.${ext}` : '') ? base.replace(INNER_IMAGE_EXTENSION, '') : base;
-  const cleaned = tidySpacing(stripSizeMarks(stripCopyMarks(inner || base)));
+  const unmarked = stripCopyMarks(inner || base);
+  // Only an image has a size in its name: “mix_128x.mp3” is a bitrate.
+  const isImage = !ext || getCategoryFromName(joinName('x', ext)) === 'image';
+  const cleaned = tidySpacing(isImage ? stripSizeMarks(unmarked) : unmarked);
   return cleaned ? joinName(cleaned, ext) : name;
 }

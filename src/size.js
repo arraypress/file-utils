@@ -63,7 +63,7 @@ export function formatSize(bytes, options = 1) {
 
   const decimals = opts.decimals ?? 1;
 
-  if (bytes === null || bytes === undefined || bytes < 0) return '';
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes) || bytes < 0) return '';
   if (bytes === 0) return (locale && inLocale(0, 0, 0, locale)) || '0 B';
 
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -75,8 +75,14 @@ export function formatSize(bytes, options = 1) {
     i++;
   }
 
+  // 1,048,575 bytes round to 1024.0 KB: that is 1.0 MB.
+  if (i > 0 && i < units.length - 1 && Number(size.toFixed(decimals)) >= 1024) {
+    size /= 1024;
+    i++;
+  }
+
   const digits = i === 0 ? 0 : decimals;
-  if (locale && Number.isFinite(size)) {
+  if (locale) {
     const localised = inLocale(size, i, digits, locale);
     if (localised) return localised;
   }
