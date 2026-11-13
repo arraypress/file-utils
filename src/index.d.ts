@@ -43,6 +43,7 @@ export {
 	withSite,
 	pageName,
 	MAX_PAGE_NAME_LENGTH,
+	uniqueNames,
 } from './naming/index.js';
 export type { DownloadFacts, NameParts, RuleName, RuleNameOptions } from './naming/index.js';
 

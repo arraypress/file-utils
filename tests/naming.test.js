@@ -7,7 +7,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatSize, isReservedName, namesSite, sanitize } from '../src/index.js';
+import { formatSize, isReservedName, namesSite, sanitize, uniqueNames } from '../src/index.js';
 import {
   cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, siteName, extensionFor,
   isDeviceName, isMeaningless, MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, withSite, baseName, joinName, splitName,
@@ -600,5 +600,28 @@ describe('pageName', () => {
     assert.ok(`${'Weekly report on the lakes '.repeat(8)}`.includes(`${name.slice('Example '.length)} `), `cut between words: ${name}`);
     assert.equal(pageName({ url: 'https://example.com/', title: 'One two three four' }, { maxLength: 14 }), 'Example One');
     assert.equal(pageName({ url: 'https://example.com/', title: 'One two three four' }, { maxLength: 15 }), 'Example One two');
+  });
+});
+
+describe('uniqueNames', () => {
+  it('numbers a name given before, case aside, and never gives one twice', () => {
+    const unique = uniqueNames();
+    assert.deepEqual(['View.jpg', 'view.jpg', 'View.jpg', 'View 2.jpg', 'Other.png', 'README', 'README'].map(unique),
+      ['View.jpg', 'view 2.jpg', 'View 3.jpg', 'View 2 2.jpg', 'Other.png', 'README', 'README 2']);
+  });
+
+  it('starts from the names already there', () => {
+    const unique = uniqueNames(['Lake.png', 'LAKE 2.png']);
+    assert.equal(unique('Lake.png'), 'Lake 3.png');
+    assert.equal(unique('Tarn.png'), 'Tarn.png');
+  });
+
+  it('cuts a long name to fit its number, so numbering always ends', () => {
+    const unique = uniqueNames();
+    const long = `${'a'.repeat(MAX_NAME_LENGTH - 4)}.jpg`;
+    const names = Array.from({ length: 12 }, () => unique(long));
+    assert.equal(new Set(names.map((name) => name.toLowerCase())).size, 12);
+    for (const name of names) assert.ok(name.length <= MAX_NAME_LENGTH && name.endsWith('.jpg'), name);
+    assert.match(names[11], / 12\.jpg$/);
   });
 });

@@ -190,6 +190,16 @@ page (a folder of its files, a screenshot of it): `withSite(fromTitle(title))`, 
 name, else the host; `:` and slashes made readable; cut between words at `MAX_PAGE_NAME_LENGTH`
 (80). “Lake District trips – Example” on www.example.com → “Example Lake District trips”.
 
+**`uniqueNames(taken?)`**: a namer for files that end up side by side (a ZIP's entries, one folder):
+a name it has given before, case aside, is numbered (“View.jpg”, “View 2.jpg”), a long one cut to
+make room for the number. `taken` are names already there.
+
+```js
+const unique = uniqueNames(['Lake.png']);
+unique('Lake.png'); // 'Lake 2.png'
+unique('lake.PNG'); // 'lake 3.PNG'
+```
+
 ### Type
 
 **`isImage(mime)`** · **`isAudio(mime)`** · **`isVideo(mime)`** · **`isDocument(mime)`** ·

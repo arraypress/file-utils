@@ -17,4 +17,4 @@ export { cleanName, decodeName, stripCopyMarks, stripSizeMarks, stripTracking, t
 export { isDeviceName, isMeaningless } from './meaning.js';
 export { fromLabel, fromLinkText, fromPath, fromQuery, fromTitle, namesSite, siteName } from './context.js';
 export { extensionFor } from './extension.js';
-export { MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, withSite } from './name.js';
+export { MAX_NAME_LENGTH, MAX_PAGE_NAME_LENGTH, finishName, hostOf, pageName, ruleName, uniqueNames, withSite } from './name.js';

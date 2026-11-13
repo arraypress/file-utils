@@ -5,6 +5,12 @@ All notable changes to `@arraypress/file-utils` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] — Unreleased
+
+### Added
+
+- `uniqueNames(taken?)`: a namer that numbers a name it has given before, case aside (“View.jpg”, “View 2.jpg”, “View 3.jpg”), a long name cut to make room for its number. Moved from Better Saves (its ZIP's entries and folder), for Better Images, which also hands it the names already in a folder (`taken`) so nothing saved there replaces a file.
+
 ## [1.5.0] — Unreleased
 
 ### Added

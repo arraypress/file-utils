@@ -71,6 +71,7 @@ export {
 	withSite,
 	pageName,
 	MAX_PAGE_NAME_LENGTH,
+	uniqueNames,
 } from './naming/index.js';
 
 /* Type — classification and labelling of MIME strings. */

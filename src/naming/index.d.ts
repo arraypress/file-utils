@@ -100,3 +100,9 @@ export function withSite(name: string | null, host: string): string | null;
 export const MAX_PAGE_NAME_LENGTH: number;
 /** A name for something made from a whole page (a folder of its files, a screenshot of it): its title with the site's name, cut between words. */
 export function pageName(page: { url: string; title?: string }, options?: { maxLength?: number; fallback?: string }): string;
+
+/**
+ * A namer that numbers a name it has given before (case aside): “View.jpg”, “View 2.jpg”.
+ * `taken` are names already there (a folder's files).
+ */
+export function uniqueNames(taken?: Iterable<string>): (name: string) => string;

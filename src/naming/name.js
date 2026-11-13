@@ -183,3 +183,36 @@ export function pageName(page, options = {}) {
   // Windows keeps “Con”, “Aux” and “Nul” (con.com, aux.io) for devices: no folder can have the name.
   return isReservedName(safe) ? `_${safe}` : safe;
 }
+
+/**
+ * A namer that numbers a name it has given before (case aside, as macOS and
+ * Windows compare them): “View.jpg”, “View 2.jpg”, “View 3.jpg”. For a ZIP's
+ * entries, or files saved into one folder, where a second file of the same
+ * name would replace the first.
+ *
+ * @param {Iterable<string>} [taken] - Names already there (a folder's files).
+ * @returns {(name: string) => string} Gives each name, numbered when taken.
+ * @example
+ * const unique = uniqueNames();
+ * unique('View.jpg'); // 'View.jpg'
+ * unique('view.jpg'); // 'view 2.jpg'
+ * uniqueNames(['Lake.png'])('Lake.png'); // 'Lake 2.png'
+ */
+export function uniqueNames(taken = []) {
+  const used = new Set([...taken].map((name) => name.toLowerCase()));
+  /** @type {Map<string, number>} The next number to try for a name. */
+  const next = new Map();
+  return (name) => {
+    const { base, ext } = splitName(name);
+    let unique = name;
+    let number = next.get(name.toLowerCase()) ?? 2;
+    for (; used.has(unique.toLowerCase()); number += 1) {
+      // Room for the number: a long name is cut to fit it, or the number would be cut off and the loop never end.
+      const room = MAX_NAME_LENGTH - (ext ? ext.length + 1 : 0) - String(number).length - 1;
+      unique = finishName(`${base.slice(0, room).trim()} ${number}`, ext, undefined);
+    }
+    next.set(name.toLowerCase(), number);
+    used.add(unique.toLowerCase());
+    return unique;
+  };
+}
